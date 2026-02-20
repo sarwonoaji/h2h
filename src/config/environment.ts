@@ -7,7 +7,7 @@ type Environment = {
 const ENV: Record<string, Environment> = {
   development: {
     AUTH_API: "https://com-danliris-service-auth-v8-dev.azurewebsites.net/v1/",
-    DL_SUPPORT_API: "https://localhost:5002/api/",
+    DL_SUPPORT_API: "https://com-danliris-service-support-dev.azurewebsites.net/v1/",
     TPB_API: "https://localhost:5002/api"
   },
   production: {

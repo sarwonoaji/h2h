@@ -26,12 +26,9 @@ const LoginPage = () => {
     try {
       const response = await authService.login(formData);
       console.log("Login successful, token:", response);
-      // Store token in localStorage
       localStorage.setItem("token", response.token);
-      // Set expired 1 hour from now
       localStorage.setItem("tokenExpired", new Date(Date.now() + 60*60*1000).toISOString());
       
-      // Redirect to home/dashboard after successful login
       window.location.href = "/";
     } catch (err) {
       setError(err instanceof Error ? err.message : "Login failed. Please try again.");

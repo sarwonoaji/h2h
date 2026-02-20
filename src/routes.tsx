@@ -1,17 +1,17 @@
 import { Routes, Route, Navigate } from "react-router-dom";
-import { LoginPage } from "./pages";
+import { LoginPage } from "./views";
 import { useAuth } from "./hooks";
 import {
   DashboardPage,
   DashboardHome,
-} from "./pages/Dashboard";
-import MasterHS from "./pages/Dashboard/MasterHS/MasterHSView";
-import BC30 from "./pages/Dashboard/PEB/BC30View";
-import BC23 from "./pages/Dashboard/TPB/BC23View";
-import BC25 from "./pages/Dashboard/TPB/BC25View";
-import BC261 from "./pages/Dashboard/TPB/BC261View";
-import BC262 from "./pages/Dashboard/TPB/BC262View";
-import BC27Out from "./pages/Dashboard/TPB/BC27OutView";
+} from "./views/Dashboard";
+import MasterHS from "./views/Dashboard/MasterHS/MasterHSView";
+import BC30 from "./views/Dashboard/PEB/BC30View";
+import BC23 from "./views/Dashboard/TPB/BC23View";
+import BC25 from "./views/Dashboard/TPB/BC25View";
+import BC261 from "./views/Dashboard/TPB/BC261View";
+import BC262 from "./views/Dashboard/TPB/BC262View";
+import BC27Out from "./views/Dashboard/TPB/BC27OutView";
 
 const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   const { isAuthenticated, isLoading } = useAuth();
