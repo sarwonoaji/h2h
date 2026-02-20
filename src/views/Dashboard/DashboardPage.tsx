@@ -104,6 +104,7 @@ const DashboardPage = () => {
             title="Go to Dashboard"
           >
             H2H CEISA
+            <p style={{fontSize: "12px", margin: "0px 0 0 0"}}>PT. Danliris</p>
           </h4>
         </div>
         <nav className="sidebar-nav">
@@ -112,7 +113,7 @@ const DashboardPage = () => {
               const Icon = item.icon;
               const isActive = location.pathname === item.path || (item.children && item.children.some((c) => location.pathname === c.path));
               return (
-                <li key={item.key} className={isActive ? "active" : ""}>
+                <li key={item.key} className={`${!item.children ? "no-children" : ""} ${isActive ? "active" : ""}`}>
                   {item.children ? (
                     <>
                       <button
@@ -122,14 +123,23 @@ const DashboardPage = () => {
                       >
                         <Icon />
                         {!minimized && <span>{item.label}</span>}
-                        
+                        {!minimized && (
+                          <span className="sidebar-dropdown-icon">
+                            {openSubMenu === item.key ? "▾" : "▸"}
+                          </span>
+                        )}
                       </button>
                       {openSubMenu === item.key && !minimized && (
                         <ul className="sidebar-submenu">
                           {item.children.map((child) => {
                             const ChildIcon = child.icon;
                             return (
-                              <li key={child.key} className={location.pathname === child.path ? "active" : ""}>
+                              <li
+                                key={child.key}
+                                className={
+                                  location.pathname === child.path ? "active" : ""
+                                }
+                              >
                                 <Link to={child.path} title={child.label}>
                                   <ChildIcon />
                                   <span>{child.label}</span>
