@@ -5,7 +5,7 @@ import { useNavigate } from "react-router-dom";
 interface TableColumn<T> {
   header: string;
   accessor: keyof T;
-  render?: (row: T) => React.ReactNode;
+  render?: (row: T, index: number) => React.ReactNode;
   thStyle?: React.CSSProperties;
   tdStyle?: React.CSSProperties;
 }
@@ -79,7 +79,7 @@ function CustomTable<T extends { id?: string | number }>({
           ...headerStyle,
         }}
       >
-        <h5 style={{ margin: 0, ...titleStyle }}>{title}</h5>
+        <h3 style={{ margin: 0, ...titleStyle }}>{title}</h3>
 
         <div
           style={{
@@ -143,7 +143,7 @@ function CustomTable<T extends { id?: string | number }>({
                 {columns.map((col, colIndex) => (
                   <td key={colIndex} style={col.tdStyle}>
                     {col.render
-                      ? col.render(row)
+                      ? col.render(row, rowIndex)
                       : String(row[col.accessor] ?? "")}
                   </td>
                 ))}

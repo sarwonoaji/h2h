@@ -12,7 +12,6 @@ export interface LoginResponse {
 export const authService = {
   login: async (data: LoginRequest): Promise<LoginResponse> => {
     const res = await authApi.post<any>("authenticate", data);
-    // Ambil token dari res.data
     return { token: res.data };
   }
 };

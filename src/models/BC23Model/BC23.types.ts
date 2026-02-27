@@ -10,35 +10,35 @@ export interface BC23Request {
   fob: number;
   freight: number;
   hargaPenyerahan: number;
-  jabatanTtd: string;
+  jabatanTtd: string | null;
   jumlahKontainer: number;
   kodeAsuransi: "LN" | "DN";
   kodeDokumen: "23";
-  kodeIncoterm: string;
-  kodeKantor: string;
-  kodeKantorBongkar: string;
-  kodePelBongkar: string;
-  kodePelMuat: string;
-  kodePelTransit: string;
-  kodeTps: string;
+  kodeIncoterm: string | null;
+  kodeKantor: string | null;
+  kodeKantorBongkar: string | null;
+  kodePelBongkar: string | null;
+  kodePelMuat: string | null;
+  kodePelTransit: string | null;
+  kodeTps: string | null;
 
-  kodeTujuanTpb: string;
+  kodeTujuanTpb: string | null;
   kodeTutupPu: "11" | "12" | "14";
-  kodeValuta: string;
-  kotaTtd: string;
-  namaTtd: string;
+  kodeValuta: string | null;
+  kotaTtd: string | null;
+  namaTtd: string | null;
   ndpbm: number;
   netto: number;
-  nik:string;
+  nik:string | null;
   nilaiBarang: number;
-  nomorAju: string;
-  nomorBc11: string;
-  posBc11: string;
+  nomorAju: string | null;
+  nomorBc11: string | null;
+  posBc11: string | null;
   seri: number;
-  subposBc11: string;
-  tanggalBc11: string;
-  tanggalTiba: string;
-  tanggalTtd: string;
+  subposBc11: string | null;
+  tanggalBc11: string | null;
+  tanggalTiba: string | null;
+  tanggalTtd: string | null;
   biayaTambahan: number;
   biayaPengurang: number;
   kodeKenaPajak: "1" | "2";
@@ -51,60 +51,12 @@ export interface BC23Request {
   pengangkut: Pengangkut[];
 }
 
-export const defaultBC23Request: BC23Request = {
-  asalData: "S",
-  asuransi: 0,
-  bruto: 0,
-  cif: 0,
-  fob: 0,
-  freight: 0,
-  hargaPenyerahan: 0,
-  jabatanTtd: "",
-  jumlahKontainer: 0,
-  kodeAsuransi: "LN",
-  kodeDokumen: "23",
-  kodeIncoterm: "",
-  kodeKantor: "",
-  kodeKantorBongkar: "",
-  kodePelBongkar: "",
-  kodePelMuat: "",
-  kodePelTransit: "",
-  kodeTps: "",
-  kodeTujuanTpb: "",
-  kodeTutupPu: "11",
-  kodeValuta: "",
-  kotaTtd: "",
-  namaTtd: "",
-  ndpbm: 0,
-  netto: 0,
-  nik: "",
-  nilaiBarang: 0,
-  nomorAju: "",
-  nomorBc11: "",
-  posBc11: "",
-  seri: 0,
-  subposBc11: "",
-  tanggalBc11: "",
-  tanggalTiba: "",
-  tanggalTtd: "",
-  biayaTambahan: 0,
-  biayaPengurang: 0,
-  kodeKenaPajak: "1",
-
-  barang: [],
-  entitas: [],
-  kemasan: [],
-  kontainer: [],
-  dokumen: [],
-  pengangkut: []
-};
-
 /* =========================================
    BARANG
 ========================================= */
 
 export interface Barang {
-  idBarang: string;
+  idBarang: string | null;
   asuransi: number;
   cif: number;
   diskon: number;
@@ -116,23 +68,23 @@ export interface Barang {
   isiPerKemasan: number;
   jumlahKemasan: number;
   jumlahSatuan: number;
-  kodeBarang: string;
-  kodeDokumen: string;
-  kodeKategoriBarang: string;
-  kodeJenisKemasan: string;
-  kodeNegaraAsal: string;
+  kodeBarang: string | null;
+  kodeDokumen: string | null;
+  kodeKategoriBarang: string | null;
+  kodeJenisKemasan: string | null;
+  kodeNegaraAsal: string | null;
   kodePerhitungan: "0" | "1";
-  kodeSatuanBarang: string;
-  merk: string;
+  kodeSatuanBarang: string | null;
+  merk: string | null;
   netto: number;
   nilaiBarang: number;
   nilaiTambah: number;
-  posTarif: string;
+  posTarif: string | null;
   seriBarang: number;
-  spesifikasiLain: string;
-  tipe: string;
-  ukuran: string;
-  uraian: string;
+  spesifikasiLain: string | null;
+  tipe: string | null;
+  ukuran: string | null;
+  uraian: string | null;
   ndpbm: number;
   cifRupiah: number;
   hargaPerolehan: number;
@@ -149,9 +101,9 @@ export interface Barang {
 export interface BarangTarif {
   kodeJenisTarif: "1" | "2";
   jumlahSatuan: number;
-  kodeFasilitasTarif: string;
-  kodeSatuanBarang: string;
-  kodeJenisPungutan: string; // BM | PPH | PPN | dll
+  kodeFasilitasTarif: string | null;
+  kodeSatuanBarang: string | null;
+  kodeJenisPungutan: string | null; // BM | PPH | PPN | dll
   nilaiBayar: number;
   nilaiFasilitas: number;
   nilaiSudahDilunasi: number;
@@ -165,7 +117,7 @@ export interface BarangTarif {
 ========================================= */
 
 export interface BarangDokumen {
-  seriDokumen: string;
+  seriDokumen: string | null;
 }
 
 /* =========================================
@@ -173,20 +125,18 @@ export interface BarangDokumen {
 ========================================= */
 
 export interface Entitas {
-  alamatEntitas: string;
-  kodeEntitas: string;
-  kodeJenisIdentitas: "2" | "3" | "4" | "5" | "6";
-  kodeJenisApi: string;
-  kodeNegara: string;
-  kodeStatus: "0" | "1" | "2" | "3" | "4" | "5" | "6" | "7" | "8" | "9" | "10";
-  namaEntitas: string;
-  nibEntitas: string;
-  nomorIdentitas: string;
-  nomorIjinEntitas: string;
-  tanggalIjinEntitas?: string;
+  alamatEntitas: string | null;
+  kodeEntitas: string | null;
+  kodeJenisIdentitas: "2" | "3" | "4" | "5" | "6" | null;
+  kodeJenisApi: string | null;
+  kodeNegara?: string | null;
+  kodeStatus?: "0" | "1" | "2" | "3" | "4" | "5" | "6" | "7" | "8" | "9" | "10" | null;
+  namaEntitas: string | null;
+  nibEntitas: string | null;
+  nomorIdentitas: string | null;
+  nomorIjinEntitas: string | null;
+  tanggalIjinEntitas?: string | null;
   seriEntitas: number;
-
-
 }
 
 /* =========================================
@@ -195,9 +145,9 @@ export interface Entitas {
 
 export interface Kemasan {
   jumlahKemasan: number;
-  kodeJenisKemasan: string;
+  kodeJenisKemasan: string | null;
   seriKemasan: number;
-  merkKemasan: string;
+  merkKemasan: string | null;
 }
 
 /* =========================================
@@ -207,7 +157,7 @@ export interface Kemasan {
 export interface Kontainer {
   kodeTipeKontainer: "1" | "2" | "3" | "4" | "5" | "6" | "7" | "8" | "99";
   kodeUkuranKontainer: "20" | "40" | "45" | "60";
-  nomorKontainer: string;
+  nomorKontainer: string | null;
   seriKontainer: number;
   kodeJenisKontainer: "4" | "7" | "8";
 }
@@ -217,11 +167,11 @@ export interface Kontainer {
 ========================================= */
 
 export interface Dokumen {
-  idDokumen: string;
-  kodeDokumen: string;
-  nomorDokumen: string;
+  idDokumen: string | null;
+  kodeDokumen: string | null;
+  nomorDokumen: string | null;
   seriDokumen: number;
-  tanggalDokumen: string;
+  tanggalDokumen: string | null;
 }
 
 /* =========================================
@@ -229,9 +179,9 @@ export interface Dokumen {
 ========================================= */
 
 export interface Pengangkut {
-  kodeBendera: string;
-  namaPengangkut: string;
-  nomorPengangkut: string;
-  kodeCaraAngkut: "1" | "2" | "3" | "4" | "5" | "6" | "7" | "8" | "9";
+  kodeBendera: string | null;
+  namaPengangkut: string | null;
+  nomorPengangkut: string | null;
+  kodeCaraAngkut: "1" | "2" | "3" | "4" | "5" | "6" | "7" | "8" | "9" | null;
   seriPengangkut: number;
 }

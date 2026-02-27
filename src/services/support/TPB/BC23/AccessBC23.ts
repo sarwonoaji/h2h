@@ -4,16 +4,23 @@ export interface TPB {
   id: number;
   ajuNo: string;
 }
+export interface ApiResponse<T> {
+  apiVersion: string;
+  data: T;
+  info: any;
+  message: string;
+  statusCode: number;
+}
 
 export const bc23Service = {
   getUrutNoAju: () =>
     tpbApi.get<number>("/23/count"),
 
   getTPB: () =>
-    tpbApi.get<TPB[]>("/23"),
+    tpbApi.get<ApiResponse<any[]>>("/23"),
 
   getById: (id: number) =>
-    tpbApi.get<TPB>(`/23/${id}`),
+    tpbApi.get<ApiResponse<any>>(`/23/${id}`),
 
   postTPB: (data: unknown) =>
     tpbApi.post<TPB>("/23", data),

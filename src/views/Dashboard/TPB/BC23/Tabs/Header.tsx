@@ -1,17 +1,42 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Card from "../../../../../components/Card";
+import { ListPelabuhan } from "../../../../../services/loader/ListPelabuhan";
+import { ListTujuanTPB } from "../../../../../services/loader/ListTujuanTPB";
+import { ListKantor } from "../../../../../services/loader/ListKantor";
 
-const HeaderPageBC23 = (props: any) => {
-
-  const [data, setData] = useState(props.data || {});
-  const [tujuan, setTujuan] = useState("");
-  const taxList = [
-    { label: "PPN", value: "ppn" },
-    { label: "PPh 21", value: "pph21" },
-    { label: "PPh 23", value: "pph23" },
-    { label: "PPh 4(2)", value: "pph4(2)" },
-  ];
-
+const HeaderPageBC23 = ({ data, setData, setIsComplete }: any) => {
+  console.log("HeaderPageBC23 received data:", data);
+  useEffect(() => {
+  const hasHeader = !!(
+    data.nomorAju &&
+    data.kodeKantor &&
+    data.kodeKantorBongkar &&
+    data.kodePelBongkar &&
+    data.kodeTujuanTpb
+  );
+  setIsComplete(hasHeader);
+}, [data]);
+  const customViewNumberAju = (value: string) => {
+    //4 digit - 2 digit - 6 digit - 8 digit - 6 digit contoh: 0001 - 23 - 000001 - 00000001 - 000001
+    const numericValue = value.replace(/\D/g, "");
+    let formattedValue = "";
+    if (numericValue.length > 0) {
+      formattedValue += numericValue.slice(0, 4);
+    }
+    if (numericValue.length > 4) {
+      formattedValue += " - " + numericValue.slice(4, 6);
+    }
+    if (numericValue.length > 6) {
+      formattedValue += " - " + numericValue.slice(6, 12);
+    }
+    if (numericValue.length > 12) {
+      formattedValue += " - " + numericValue.slice(12, 20);
+    }
+    if (numericValue.length > 20) {
+      formattedValue += " - " + numericValue.slice(20, 26);
+    }
+    return formattedValue;
+  }
   return (
     <div style={{ display: "flex", flexDirection: "row", gap: 8, justifyContent: "center" }}>
       <Card
@@ -21,40 +46,47 @@ const HeaderPageBC23 = (props: any) => {
           <Card.Input
             label="Nomor Aju"
             name="nomorAju"
-            value={data.nomorAju || ""}
-            onChange={(e) => setData({ ...data, nomorAju: e.target.value })}
+            value={customViewNumberAju(data.nomorAju || "")}
+            onChange={(val) => {
+              setData({ ...data, nomorAju: val });
+            }}
             error={!data.nomorAju ? "Nomor Kosong" : ""}
-            readonly={false}
+            readonly={true}
           />
         </Card>
         <Card
           title="Kantor Pabean" headerStyle={{ backgroundColor: "#f5f5f5" }}>
           <Card.Select
             label="Pelabuhan Bongkar"
-            name="nomorPelBongkar"
-            value={data.nomorPelBongkar || ""}
-            list={taxList}
-            onChange={(val) => setData({ ...data, nomorPelBongkar: val })}
-            error={!data.nomorPelBongkar ? "Pelabuhan wajib dipilih" : ""}
+            name="kodePelBongkar"
+            value={data.kodePelBongkar || ""}
+            list={ListPelabuhan.map(item => ({ label: item.label, value: item.value }))}
+            onChange={(val) => {
+              setData({ ...data, kodePelBongkar: val });
+            }}
+            error={!data.kodePelBongkar ? "Pelabuhan wajib dipilih" : ""}
           />
-          <Card.Input
-            label="Kantor Pelabuhan Bongkar"
-            name="kantorPelabuhanBongkar"
-            value={data.kantorPelabuhanBongkar || ""}
-            onChange={(e) => setData({ ...data, kantorPelabuhanBongkar: e.target.value })}
+          <Card.Select
+            label="Kantor Pabean Bongkar"
+            name="kodeKantorBongkar"
+            value={data.kodeKantorBongkar || ""}
+            onChange={(val) => {
+              setData({ ...data, kodeKantorBongkar: val });
+            }}
+            list={ListKantor.map(item => ({ label: `${item.key} - ${item.name}`, value: item.key }))}
             readonly={false}
+            error={!data.kodeKantorBongkar ? "Kantor wajib dipilih" : ""}
           />
           <Card.Select
             label="Kantor Pabean Pengawas"
-            name="kantorPabeanPengawas"
-            value={data.kantorPabeanPengawas || ""}
-            onChange={(val) => setData({ ...data, kantorPabeanPengawas: val })}
-            readonly={true}
-            list={[
-              { label: "Admin", value: "admin" },
-              { label: "User", value: "user" },
-            ]}
-            error={!data.kantorPabeanPengawas ? "Role wajib dipilih" : ""}
+            name="kodeKantor"
+            value={data.kodeKantor || ""}
+            onChange={(val) => {
+              setData({ ...data, kodeKantor: val });
+            }}
+            readonly={false}
+            list={ListKantor.map(item => ({ label: `${item.key} - ${item.name}`, value: item.key }))}
+            error={!data.kodeKantor ? "Kantor wajib dipilih" : ""}
           />
         </Card>
         <Card
@@ -63,11 +95,13 @@ const HeaderPageBC23 = (props: any) => {
         >
           <Card.Select
             label="Tujuan"
-            name="taxType"
-            value={tujuan}
-            onChange={(val) => setTujuan(val)}
-            list={taxList}
-            error={!tujuan ? "Tujuan wajib dipilih" : ""}
+            name="kodeTujuanTpb"
+            value={data.kodeTujuanTpb || ""}
+            onChange={(val) => {
+              setData({ ...data, kodeTujuanTpb: val });
+            }}
+            list={ListTujuanTPB.map(item => ({ label: `${item.value} - ${item.label}`, value: item.value }))}
+            error={!data.kodeTujuanTpb ? "Tujuan wajib dipilih" : ""}
           />
         </Card>
     </div>

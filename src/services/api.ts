@@ -20,7 +20,6 @@ export const createApi = (baseURL: string) => {
       },
       body: data ? JSON.stringify(data) : undefined
     });
-
     if (!response.ok) {
       throw new Error(`API Error ${response.status}`);
     }

@@ -1,6 +1,7 @@
 import { useState, type FormEvent } from "react";
 import { authService, type LoginRequest } from "../../services/auth/auth.services";
 import "./LoginPage.css";
+import { ceisaService } from "../../services/support/Ceisa/AccessCeisa";
 
 const LoginPage = () => {
   const [formData, setFormData] = useState<LoginRequest>({
@@ -25,10 +26,9 @@ const LoginPage = () => {
 
     try {
       const response = await authService.login(formData);
-      console.log("Login successful, token:", response);
       localStorage.setItem("token", response.token);
       localStorage.setItem("tokenExpired", new Date(Date.now() + 60*60*1000).toISOString());
-      
+      await ceisaService.getLoginCeisa();
       window.location.href = "/";
     } catch (err) {
       setError(err instanceof Error ? err.message : "Login failed. Please try again.");

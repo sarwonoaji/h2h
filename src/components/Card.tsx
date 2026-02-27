@@ -1,3 +1,4 @@
+import moment from "moment";
 import React, { useState, useRef, useEffect } from "react";
 
 /* =============================
@@ -10,13 +11,14 @@ interface CardProps {
   style?: React.CSSProperties;
   className?: string;
   headerStyle?: React.CSSProperties;
+  headerCustom?: React.ReactNode;
   bodyStyle?: React.CSSProperties;
 }
 
 interface BaseFieldProps {
   label: string;
   name: string;
-  value?: string;
+  value?: string | number | null;
   readonly?: boolean;
   containerStyle?: React.CSSProperties;
   labelStyle?: React.CSSProperties;
@@ -29,13 +31,16 @@ interface BaseFieldProps {
 }
 
 interface InputProps extends BaseFieldProps {
+  onlyNumber?: boolean;
+  maxLength?: number;
   type?: string;
-  onChange?: (e: React.ChangeEvent<HTMLInputElement>) => void;
+  onChange?: (value: string) => void;
 }
 
 interface SelectProps extends BaseFieldProps {
-  list: { label: string; value: string }[];
-  onChange?: (value: string) => void;
+  list: { label: string; value: string | number }[];
+  sliceList?: number;
+  onChange?: (value: string | number) => void;
 }
 
 interface TextareaProps extends BaseFieldProps {
@@ -43,7 +48,9 @@ interface TextareaProps extends BaseFieldProps {
 }
 
 interface NumericProps extends BaseFieldProps {
-  onChange?: (value: string) => void;
+  value?: string | number | null;
+  typeChanges?: "number" | "string";
+  onChange?: (value: number | string | null) => void;
 }
 
 interface DatePickerProps extends BaseFieldProps {
@@ -61,12 +68,23 @@ interface CardComponent extends React.FC<CardProps> {
    MAIN CARD
 ============================= */
 
-const Card: CardComponent = ({ title, children, style, className, headerStyle, bodyStyle }) => {
+const Card: CardComponent = ({ title, headerCustom, children, style, className, headerStyle, bodyStyle }) => {
   return (
     <div style={{ ...styles.card, ...style }} className={className}>
-      <div style={{ ...styles.header, ...headerStyle }}>
-        <h3 style={{ margin: 0, fontFamily: "inherit", fontSize: 15 }}>{title}</h3>
-      </div>
+      {title && (
+        <div
+          style={{
+            ...styles.header,
+            ...headerStyle,
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "center",
+          }}
+        >
+          <h3 style={{ margin: 0, fontSize: 15, fontFamily: "inherit" }}>{title}</h3>
+          {headerCustom && <div>{headerCustom}</div>}
+        </div>
+      )}
       <div style={{ ...styles.body, ...bodyStyle }}>{children}</div>
     </div>
   );
@@ -88,12 +106,26 @@ const CardInput: React.FC<InputProps> = ({
   inputStyle,
   className,
   error,
+  onlyNumber = false,
+  maxLength,
   errorStyle,
   errorClassName,
   showError = true,
 }) => {
   const isError = !!error;
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    let val = e.target.value;
 
+    if (onlyNumber) {
+      val = val.replace(/[^0-9]/g, "");
+    }
+
+    if (maxLength) {
+      val = val.slice(0, maxLength);
+    }
+
+    onChange?.(val); // ⬅ kirim value saja
+  };
   return (
     <div style={{ ...styles.formGroup, ...containerStyle }}>
       <label style={{ ...styles.label, ...labelStyle }}>{label}</label>
@@ -101,10 +133,12 @@ const CardInput: React.FC<InputProps> = ({
       <input
         type={type}
         name={name}
-        value={value}
+        value={value ?? ""}
         readOnly={readonly}
-        onChange={onChange}
+        onChange={handleChange}
         className={className}
+        inputMode={onlyNumber ? "numeric" : "text"}
+        pattern={onlyNumber ? "[0-9]*" : undefined}
         style={{
           ...styles.input,
           border: isError ? "1px solid #d32f2f" : "1px solid #ccc",
@@ -134,6 +168,7 @@ const CardSelect: React.FC<SelectProps> = ({
   name,
   value,
   list,
+  sliceList = 10, // default slice list to 10 items
   readonly = false,
   onChange,
   containerStyle,
@@ -153,9 +188,11 @@ const CardSelect: React.FC<SelectProps> = ({
   const selectedLabel =
     list.find((item) => item.value === value)?.label || "";
 
-  const filteredList = list.filter((item) =>
-    item.label.toLowerCase().includes(search.toLowerCase())
-  );
+  const filteredList = search
+  ? list.filter((item) =>
+      item.label.toLowerCase().includes(search.toLowerCase())
+    )
+  : list.slice(0, sliceList);
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -283,7 +320,7 @@ const CardTextarea: React.FC<TextareaProps> = ({
       <label style={{ ...styles.label, ...labelStyle }}>{label}</label>
       <textarea
         name={name}
-        value={value}
+        value={ value ?? "" }
         readOnly={readonly}
         onChange={onChange}
         className={className}
@@ -323,22 +360,30 @@ const CardNumeric: React.FC<NumericProps> = ({
   errorStyle,
   errorClassName,
   showError = true,
+  typeChanges = "number",
 }) => {
   const isError = !!error;
-
+  const normalizedValue =
+    typeof value === "string" && value !== ""
+      ? Number(value)
+      : value ?? "";
   return (
     <div style={{ ...styles.formGroup, ...containerStyle }}>
       <label style={{ ...styles.label, ...labelStyle }}>{label}</label>
       <input
         type="number"
         name={name}
-        value={value}
+        value={normalizedValue}
         readOnly={readonly}
         onChange={(e) => {
-          const numericValue = e.target.value.replace(/\D/g, "");
-          onChange?.(numericValue);
-        }
-        }
+          const raw = e.target.value.replace(/\D/g, "");
+
+          if (typeChanges === "number") {
+            onChange?.(raw === "" ? 0 : Number(raw));
+          } else {
+            onChange?.(raw);
+          }
+        }}
         className={className}
         style={{
           ...styles.input,
@@ -385,7 +430,7 @@ const CardDatePicker: React.FC<DatePickerProps> = ({
       <input
         type="date"
         name={name}
-        value={value}
+        value={ value ? moment(value).format("YYYY-MM-DD") : "" }
         readOnly={readonly}
         onChange={(e) => onChange?.(e.target.value ? new Date(e.target.value) : null)}
         className={className}
@@ -437,6 +482,7 @@ const styles: { [key: string]: React.CSSProperties } = {
     marginBottom: "12px",
     display: "flex",
     flexDirection: "column",
+    width: "100%",
   },
   label: {
     marginBottom: "4px",
