@@ -1,8 +1,10 @@
 import { Link, Outlet, useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "../../hooks";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { icons } from "./SidebarIcons";
 import "./DashboardPage.css";
+import { FaHourglass, FaTimesCircle } from "react-icons/fa";
+import { FaHourglassStart } from "react-icons/fa6";
 
 const menuItems = [
   {
@@ -92,7 +94,40 @@ const DashboardPage = () => {
   const handleSubMenu = (key: string) => {
     setOpenSubMenu((prev) => (prev === key ? null : key));
   };
+  const [timeLeft, setTimeLeft] = useState("");
+  useEffect(() => {
+  const interval = setInterval(() => {
+    const tokenExpired = localStorage.getItem("tokenExpired");
 
+    if (!tokenExpired) return;
+
+    const expiredTime = new Date(tokenExpired).getTime();
+    const now = new Date().getTime();
+    const diff = expiredTime - now;
+
+    if (diff <= 0) {
+      clearInterval(interval);
+      setTimeLeft("00:00");
+      handleLogout();
+      return;
+    }
+
+    const hours = Math.floor(diff / 1000 / 60 / 60);
+    const minutes = Math.floor((diff / 1000 / 60) % 60);
+    const seconds = Math.floor((diff / 1000) % 60);
+
+    const formatted =
+      String(hours).padStart(2, "0") +
+      " : " +
+      String(minutes).padStart(2, "0") +
+      " : " +
+      String(seconds).padStart(2, "0");
+
+    setTimeLeft(formatted);
+  }, 1000);
+
+  return () => clearInterval(interval);
+}, []);
   return (
     <div className={`dashboard-container${minimized ? " minimized" : ""}`}>
       <aside className={`sidebar${minimized ? " minimized" : ""}`}>
@@ -171,6 +206,9 @@ const DashboardPage = () => {
           >
             <icons.expand />
           </button>
+          <div style={{display:"flex", flexDirection:"row",gap:"6px", justifyContent:"center", alignItems:"center", padding: "4px 10px", backgroundColor:"#f4f6fa", border: "1px solid #d1d5db", width: "120px", borderRadius: "4px", fontSize: "12px", margin: "-10px"}}>
+              <FaHourglassStart style={{fontSize:12}}/><span style={{paddingTop:1}}>{timeLeft}</span>
+            </div>
           <div className="navbar-username" onClick={() => setDropdownOpen((open) => !open)}>
             <span>{username}</span>
             <span className="navbar-dropdown-icon">▼</span>

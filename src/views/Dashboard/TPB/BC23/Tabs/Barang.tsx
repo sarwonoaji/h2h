@@ -3,19 +3,17 @@ import Card from "../../../../../components/Card";
 import { FaPlusCircle } from "react-icons/fa";
 import CustomTable from "../../../../../components/TableList";
 import { useEffect, useState } from "react";
-import { ListDokumen } from "../../../../../services/loader/ListDokumen";
-import moment from "moment";
-import ModalManifest from "../Modals/ModalManifest";
 import { FaCircleExclamation } from "react-icons/fa6";
 import { ModalBarang } from "../Modals/ModalBarang";
 
-const BarangBC23Page = ({ data, setData, headers }: any) => {
+const BarangBC23Page = ({ data, setData, headers, setShowModals }: any) => {
     const initForm = {
         seriDokumen: "",
         jenisDokumen: "",
         nomorDokumen: "",
         tanggalDokumen: "",
     };
+
     const [headState, setHeadState] = useState(() => ({
         kodeKantor: "",
         namaImportir: "",
@@ -25,69 +23,9 @@ const BarangBC23Page = ({ data, setData, headers }: any) => {
     const [showModal, setShowModal] = useState(false);
     const [editingIndex, setEditingIndex] = useState<number | null>(null);
     const [form, setForm] = useState({ ...initForm });
-    const generateSeri = () => {
-        if (data.length === 0) return "1";
-        const maxSeri = Math.max(...data.map((item: any) => parseInt(item.seriDokumen)));
-        return (maxSeri + 1).toString();
-    };
+
     const [showForm, setShowForm] = useState(false);
-    const handleInputChange = (field: string, value: any) => {
-        setForm((prev: any) => ({
-            ...prev,
-            [field]: value,
-        }));
-    };
-    const handleSimpan = () => {
-        if (!form.jenisDokumen || !form.nomorDokumen || !form.tanggalDokumen) {
-            alert("Lengkapi data terlebih dahulu");
-            return;
-        }
-        if (editingIndex !== null) {
-            // MODE EDIT
-            setData((prev: any) => {
-            const updated = [...(prev.dokumen || [])];
-            updated[editingIndex] = {
-                ...updated[editingIndex],
-                ...form,
-            };
-            if(updated[editingIndex].jenisDokumen === "705" || updated[editingIndex].jenisDokumen === "740") {
-                setShowModal(true);
-                setHeadState((prev) => ({
-                    ...prev,
-                    noHostBl: form.nomorDokumen,
-                    tglHostBl: form.tanggalDokumen,
-                }));
-            }
 
-            return {
-                ...prev,
-                dokumen: updated,
-            };
-            });
-
-            setEditingIndex(null);
-        } else {
-            const newData = {
-            ...form,
-            seriDokumen: generateSeri(),
-            };
-            if(newData.jenisDokumen === "705" || newData.jenisDokumen === "740") {
-                setShowModal(true);
-                setHeadState((prev) => ({
-                    ...prev,
-                    noHostBl: form.nomorDokumen,
-                    tglHostBl: form.tanggalDokumen,
-                }));
-            }
-
-            setData((prev: any) => ({
-                ...prev,
-                dokumen: [...(prev.dokumen || []), newData],
-        }))};
-
-        setForm({ ...initForm });
-        setShowForm(false);
-    };
     useEffect(() => {
         setHeadState((prev) => ({
             ...prev,
@@ -96,18 +34,8 @@ const BarangBC23Page = ({ data, setData, headers }: any) => {
         }));
     }, [headers]);
 
-    const getNamaDokumen = (kode: string) => {
-        const dokumen = ListDokumen.find((item) => item.key === kode);
-        return dokumen ? `${dokumen.key} - ${dokumen.value}` : "";
-    };
-
     const handleEdit = (row: any, index: number) => {
-        setForm({
-            seriDokumen: row.seriDokumen,
-            jenisDokumen: row.jenisDokumen,
-            nomorDokumen: row.nomorDokumen,
-            tanggalDokumen: row.tanggalDokumen,
-        });
+        setForm({...row});
 
         setEditingIndex(index);
         setShowForm(true);
@@ -132,12 +60,12 @@ const handleDelete = (index: number) => {
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 8, justifyContent: "center" }}>
-        <div style={{ display: "flex", flexDirection: "row", fontWeight: 500, fontSize: 12, padding: 12, backgroundColor: "#fff7db", alignItems: "center", gap: 6}}>
+        {!showForm && <div style={{ display: "flex", flexDirection: "row", fontWeight: 500, fontSize: 12, padding: 12, backgroundColor: "#fff7db", alignItems: "center", gap: 6}}>
             <FaCircleExclamation style={{color:"orange"}}/> <span style={{color:"black"}}>Wajib mengisi data barang</span>
-        </div>
-        <div style={{ display: "flex", flexDirection: "row", fontWeight: 500, fontSize: 12, padding: 12, backgroundColor: "#fff7db", alignItems: "center", gap: 6, marginBottom: 8 }}>
+        </div>}
+        {!showForm && <div style={{ display: "flex", flexDirection: "row", fontWeight: 500, fontSize: 12, padding: 12, backgroundColor: "#fff7db", alignItems: "center", gap: 6, marginBottom: 8 }}>
             <FaCircleExclamation style={{color:"orange"}}/> <span style={{color:"black"}}>CIF barang ({data.cif ?? 0}) tidak sama dengan CIF transaksi ({headers.cif ?? 0})</span>
-        </div>
+        </div>}
       {!showForm && <Card
           title="Data Barang"
           headerStyle={{ backgroundColor: "#f5f5f5"}}
@@ -193,7 +121,7 @@ const handleDelete = (index: number) => {
             className="custom-table"
         />
         </Card>}
-        {showForm && <ModalBarang data={data} setData={setData} setActiveForm={setShowForm} />}
+        {showForm && <ModalBarang data={data} setData={setData} header={headers} setActiveForm={setShowForm} />}
     </div>
   );
 };

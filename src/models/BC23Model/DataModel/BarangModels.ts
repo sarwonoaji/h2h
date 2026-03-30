@@ -1,4 +1,4 @@
-import type { Barang } from "../BC23.types";
+import type { Barang, BarangTarif } from "../BC23.types";
 
 export const createInitialBarang = (): Barang => ({
   idBarang: null,
@@ -37,3 +37,17 @@ export const createInitialBarang = (): Barang => ({
   barangTarif: [],
   barangDokumen: []
 });
+
+export const createInitialBarangTarif = (): BarangTarif[] => [{
+  kodeJenisTarif: "1",
+  jumlahSatuan: 0,
+  kodeFasilitasTarif: null,
+  kodeSatuanBarang: null,
+  kodeJenisPungutan: null,
+  nilaiBayar: 0,
+  nilaiFasilitas: 0,
+  nilaiSudahDilunasi: 0,
+  seriBarang: 0,
+  tarif: 0,
+  tarifFasilitas: 0
+}];

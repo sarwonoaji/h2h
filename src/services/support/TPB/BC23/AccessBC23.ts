@@ -16,8 +16,16 @@ export const bc23Service = {
   getUrutNoAju: () =>
     tpbApi.get<number>("/23/count"),
 
-  getTPB: () =>
-    tpbApi.get<ApiResponse<any[]>>("/23"),
+  getTPB: (
+  page?: number,
+  size?: number,
+  keyword?: string | null,
+  filter?: string | null,
+  order?: string | null
+) =>
+  tpbApi.get<ApiResponse<any[]>>(
+    `/23?page=${page}&size=${size}&keyword=${keyword ?? ""}&filter=${filter ?? ""}&order=${order ?? ""}`
+  ),
 
   getById: (id: number) =>
     tpbApi.get<ApiResponse<any>>(`/23/${id}`),

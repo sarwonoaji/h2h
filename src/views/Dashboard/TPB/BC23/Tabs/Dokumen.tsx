@@ -2,13 +2,15 @@ import { Button } from "react-bootstrap";
 import Card from "../../../../../components/Card";
 import { FaPlusCircle } from "react-icons/fa";
 import CustomTable from "../../../../../components/TableList";
-import { useEffect, useState } from "react";
+import { use, useEffect, useState } from "react";
 import { ListDokumen } from "../../../../../services/loader/ListDokumen";
 import moment from "moment";
 import ModalManifest from "../Modals/ModalManifest";
 import { FaCircleExclamation } from "react-icons/fa6";
+import { ceisaService } from "../../../../../services/support/Ceisa/AccessCeisa";
 
-const DokumenBC23Page = ({ data, setData, headers }: any) => {
+
+const DokumenBC23Page = ({ data, setData, headers, setIsComplete }: any) => {
 
     const initForm = {
         seriDokumen: "",
@@ -16,12 +18,15 @@ const DokumenBC23Page = ({ data, setData, headers }: any) => {
         nomorDokumen: "",
         tanggalDokumen: "",
     };
+    const [dataDokumen, setDataDokumen] = useState<any>(null);
     const [headState, setHeadState] = useState(() => ({
         kodeKantor: "",
         namaImportir: "",
         noHostBl: "",
         tglHostBl: "",
     }));
+    console.log("Data Dokumen:", headState);
+    console.log("Data Dokumen 2:", dataDokumen);
     const [showModal, setShowModal] = useState(false);
     const [editingIndex, setEditingIndex] = useState<number | null>(null);
     const [form, setForm] = useState({ ...initForm });
@@ -37,64 +42,76 @@ const DokumenBC23Page = ({ data, setData, headers }: any) => {
             [field]: value,
         }));
     };
-    const handleSimpan = () => {
-        if (!form.jenisDokumen || !form.nomorDokumen || !form.tanggalDokumen) {
-            alert("Lengkapi data terlebih dahulu");
+    const handleSimpan = async () => {
+    if (!form.jenisDokumen || !form.nomorDokumen || !form.tanggalDokumen) {
+        alert("Lengkapi data terlebih dahulu");
+        return;
+    }
+
+    if (!headers?.kodeKantor) {
+        alert("Kode kantor tidak boleh kosong");
+        return;
+    }
+
+    let res = null;
+
+    if (form.jenisDokumen === "705" || form.jenisDokumen === "740") {
+        setShowModal(true);
+
+        const head = {
+            noHostBl: form.nomorDokumen,
+            tglHostBl: form.tanggalDokumen,
+            kodeKantor: headers.kodeKantor,
+            namaImportir: headers?.entitas?.find((x: any) => x.kodeEntitas === "3")?.namaEntitas || "",
+        };
+
+        setHeadState(head);
+
+        try {
+            res = await ceisaService.getManifes(
+                head.kodeKantor,
+                head.noHostBl,
+                head.tglHostBl,
+                head.namaImportir
+            );
+            console.log("Response Manifest:", res);
+           if (res.data.respon !== "OK") {
+                console.warn(res.data.respon);
+            }
+
+            setDataDokumen(res);
+
+        } catch (err) {
+            console.error(err);
             return;
         }
+    }
+
+    setData((prev: any) => {
+        let updated = [...(prev.dokumen || [])];
+
         if (editingIndex !== null) {
-            // MODE EDIT
-            setData((prev: any) => {
-            const updated = [...(prev.dokumen || [])];
             updated[editingIndex] = {
                 ...updated[editingIndex],
                 ...form,
             };
-            if(updated[editingIndex].jenisDokumen === "705" || updated[editingIndex].jenisDokumen === "740") {
-                setShowModal(true);
-                setHeadState((prev) => ({
-                    ...prev,
-                    noHostBl: form.nomorDokumen,
-                    tglHostBl: form.tanggalDokumen,
-                }));
-            }
-
-            return {
-                ...prev,
-                dokumen: updated,
-            };
-            });
-
-            setEditingIndex(null);
         } else {
-            const newData = {
-            ...form,
-            seriDokumen: generateSeri(),
-            };
-            if(newData.jenisDokumen === "705" || newData.jenisDokumen === "740") {
-                setShowModal(true);
-                setHeadState((prev) => ({
-                    ...prev,
-                    noHostBl: form.nomorDokumen,
-                    tglHostBl: form.tanggalDokumen,
-                }));
-            }
+            updated.push({
+                ...form,
+                seriDokumen: generateSeri(),
+            });
+        }
 
-            setData((prev: any) => ({
-                ...prev,
-                dokumen: [...(prev.dokumen || []), newData],
-        }))};
-
-        setForm({ ...initForm });
-        setShowForm(false);
-    };
-    useEffect(() => {
-        setHeadState((prev) => ({
+        return {
             ...prev,
-            kodeKantor: headers?.kodeKantor || "",
-            namaImportir: headers?.entitas?.find((x: any) => x.kodeEntitas === "3")?.namaEntitas || "",
-        }));
-    }, [headers]);
+            dokumen: updated,
+        };
+    });
+
+    setEditingIndex(null);
+    setForm({ ...initForm });
+    setShowForm(false);
+};
 
     const getNamaDokumen = (kode: string) => {
         const dokumen = ListDokumen.find((item) => item.key === kode);
@@ -129,13 +146,17 @@ const handleDelete = (index: number) => {
     };
   });
 };
+useEffect(() => {
+    const isComplete = data?.length > 0;
+    setIsComplete(isComplete);
+}, [data, setIsComplete]);
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 8, justifyContent: "center" }}>
         <div style={{ display: "flex", flexDirection: "row", fontWeight: 500, fontSize: 12, padding: 12, backgroundColor: "#fff7db", alignItems: "center", gap: 6, marginBottom: 8 }}>
             <FaCircleExclamation style={{color:"orange"}}/> <span style={{color:"black"}}>Wajib melampirkan dokumen invoice dan dokumen B/L atau AWB</span>
         </div>
-      {showModal && <ModalManifest header={headState} data={data} setData={setData} />}
+      {showModal && dataDokumen && <ModalManifest header={dataDokumen} setHeader={setDataDokumen} data={data} setData={setData} setModal={setShowModal} respon={dataDokumen.data.respon} />}
       {showForm && (
       <Card
             title="Tambah Dokumen"

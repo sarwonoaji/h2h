@@ -27,7 +27,7 @@ const LoginPage = () => {
     try {
       const response = await authService.login(formData);
       localStorage.setItem("token", response.token);
-      localStorage.setItem("tokenExpired", new Date(Date.now() + 60*60*1000).toISOString());
+      localStorage.setItem("tokenExpired", new Date(Date.now() + 60*60*1000*5).toISOString());
       await ceisaService.getLoginCeisa();
       window.location.href = "/";
     } catch (err) {

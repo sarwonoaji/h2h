@@ -17,7 +17,7 @@
   height: calc(100vh - 56px);
   min-width: 0;
   margin-left: 220px;
-  margin-top: 56px;
+  margin-top: 40px;
   overflow-y: auto;
   box-sizing: border-box;
   transition: width 0.7s ease, margin-left 0.7s ease;
@@ -204,7 +204,7 @@
   display: flex;
   align-items: center;
   gap: 24px;
-  margin: 10px;
+  margin: 0px 10px;
   width: 100%;
 }
 

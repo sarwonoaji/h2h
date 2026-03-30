@@ -1,0 +1,20 @@
+export const ListPungutan = [
+    { "tableKey": "BK", "tableValue": "Bea Keluar" },
+    { "tableKey": "BM", "tableValue": "Bea Masuk" },
+    { "tableKey": "BMAD", "tableValue": "Bea Masuk Anti Dumping" },
+    { "tableKey": "BMI", "tableValue": "Bea Masuk Imbalan" },
+    { "tableKey": "BMKITE", "tableValue": "Bea Masuk KITE" },
+    { "tableKey": "BMP", "tableValue": "Bea Masuk Pembalasan" },
+    { "tableKey": "BMTP", "tableValue": "Bea Masuk Tindakan Pengamanan" },
+    { "tableKey": "CEA", "tableValue": "Cukai Etil Alkohol" },
+    { "tableKey": "CMEA", "tableValue": "Cukai Minuman Mengandung Etil Alkohol" },
+    { "tableKey": "CTEM", "tableValue": "Cukai Tembakau" },
+    { "tableKey": "DENDA", "tableValue": "Denda Administrasi Pabean" },
+    { "tableKey": "DS", "tableValue": "Dana Sawit" },
+    { "tableKey": "PNBP", "tableValue": "Penerimaan Negara Bukan Pajak" },
+    { "tableKey": "PPH", "tableValue": "PPh Impor" },
+    { "tableKey": "PPHEKSPOR", "tableValue": "PPh Ekspor" },
+    { "tableKey": "PPN", "tableValue": "PPN Impor" },
+    { "tableKey": "PPNBM", "tableValue": "PPnBM Impor" },
+    { "tableKey": "PPNLOKAL", "tableValue": "PPN Dalam Negeri / Hasil Tembakau" }
+].map(item => ({ label: `${item.tableKey} - ${item.tableValue}`, value: item.tableKey })); 

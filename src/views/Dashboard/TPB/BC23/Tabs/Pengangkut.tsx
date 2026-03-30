@@ -1,4 +1,3 @@
-import { Button } from "react-bootstrap";
 import Card from "../../../../../components/Card";
 import { ListNegara } from "../../../../../services/loader/ListNegara";
 import moment from "moment";
@@ -35,7 +34,7 @@ const PengangkutBC23Page = ({ data = [], setData, headers, setIsComplete }: any)
     data?.kodeCaraAngkut &&
     data?.namaPengangkut &&
     data?.nomorPengangkut &&
-    data?.kodeNegara;
+    data?.kodeBendera;
 
   const isPelabuhanComplete =
     headers?.kodePelMuat &&
@@ -61,7 +60,7 @@ const PengangkutBC23Page = ({ data = [], setData, headers, setIsComplete }: any)
   data?.kodeCaraAngkut,
   data?.namaPengangkut,
   data?.nomorPengangkut,
-  data?.kodeNegara,
+  data?.kodeBendera,
 ]);
   return (
     <div style={{ display: "flex", flexDirection: "row", gap: 8, justifyContent: "center" }}>
@@ -143,11 +142,11 @@ const PengangkutBC23Page = ({ data = [], setData, headers, setIsComplete }: any)
             />
         <Card.Select
             label="Negara"
-            name="kodeNegara"
-            value={data.kodeNegara || ""}
+            name="kodeBendera"
+            value={data.kodeBendera || ""}
             list={ListNegara.map(item => ({ label: `${item.value} - ${item.label}`, value: item.value }))}
-            onChange={(val) => updatePengangkut("kodeNegara", val)}
-            error={!data.kodeNegara ? "Negara wajib diisi" : ""}
+            onChange={(val) => updatePengangkut("kodeBendera", val)}
+            error={!data.kodeBendera ? "Negara wajib diisi" : ""}
         />
         </Card>
         <Card

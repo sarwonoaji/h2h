@@ -48,6 +48,7 @@ interface TextareaProps extends BaseFieldProps {
 }
 
 interface NumericProps extends BaseFieldProps {
+  labelUnit?: React.ReactNode;
   value?: string | number | null;
   typeChanges?: "number" | "string";
   onChange?: (value: number | string | null) => void;
@@ -361,6 +362,7 @@ const CardNumeric: React.FC<NumericProps> = ({
   errorClassName,
   showError = true,
   typeChanges = "number",
+  labelUnit="",
 }) => {
   const isError = !!error;
   const normalizedValue =
@@ -370,6 +372,10 @@ const CardNumeric: React.FC<NumericProps> = ({
   return (
     <div style={{ ...styles.formGroup, ...containerStyle }}>
       <label style={{ ...styles.label, ...labelStyle }}>{label}</label>
+      <div style={{ position: "relative", display:"flex", flexDirection:"row", 
+        border: isError ? "1px solid #d32f2f" :"1px solid #ccc",
+        backgroundColor: readonly ? "#f5f5f5" : "#fff",
+       }}>
       <input
         type="number"
         name={name}
@@ -387,11 +393,16 @@ const CardNumeric: React.FC<NumericProps> = ({
         className={className}
         style={{
           ...styles.input,
-          border: isError ? "1px solid #d32f2f" : "1px solid #ccc",
           backgroundColor: readonly ? "#f5f5f5" : "#fff",
+          borderRight: labelUnit ? "1px solid #ccc" : "1px solid transparent",
           ...inputStyle,
         }}
       />
+      {labelUnit && (
+      <div style={{ height: "inherit", display: "flex", justifyContent: "center", alignItems: "center", padding:"0 8px"}}>{labelUnit}</div>
+      )}
+      </div>
+      
       {isError && showError && (
         <span
           className={errorClassName}

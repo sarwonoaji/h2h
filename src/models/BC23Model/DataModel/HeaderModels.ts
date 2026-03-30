@@ -1,3 +1,4 @@
+import moment from "moment";
 import type { BC23Request } from "../BC23.types";
 
 export const defaultBC23Request: BC23Request = {
@@ -8,7 +9,7 @@ export const defaultBC23Request: BC23Request = {
   fob: 0,
   freight: 0,
   hargaPenyerahan: 0,
-  jabatanTtd: "",
+  jabatanTtd: "KASIE KEPABEANAN",
   jumlahKontainer: 0,
   kodeAsuransi: "LN",
   kodeDokumen: "23",
@@ -22,8 +23,8 @@ export const defaultBC23Request: BC23Request = {
   kodeTujuanTpb: "",
   kodeTutupPu: "11",
   kodeValuta: "",
-  kotaTtd: "",
-  namaTtd: "",
+  kotaTtd: "SUKOHARJO",
+  namaTtd: "UDIK WIJANARKO",
   ndpbm: 0,
   netto: 0,
   nik: "",
@@ -33,9 +34,9 @@ export const defaultBC23Request: BC23Request = {
   posBc11: "",
   seri: 0,
   subposBc11: "",
-  tanggalBc11: "",
-  tanggalTiba: "",
-  tanggalTtd: "",
+  tanggalBc11:moment(new Date()).format("YYYY-MM-DD"),
+  tanggalTiba: null,
+  tanggalTtd: moment(new Date()).format("YYYY-MM-DD"),
   biayaTambahan: 0,
   biayaPengurang: 0,
   kodeKenaPajak: "1",

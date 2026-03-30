@@ -34,6 +34,7 @@ export const useAuth = () => {
         });
       } else {
         // Token expired, clear storage
+        localStorage.removeItem("AuthorizationCeisa");
         localStorage.removeItem("token");
         localStorage.removeItem("tokenExpired");
         setAuthState({
@@ -83,6 +84,7 @@ export const useAuth = () => {
   const logout = useCallback(() => {
     localStorage.removeItem("token");
     localStorage.removeItem("tokenExpired");
+    localStorage.removeItem("AuthorizationCeisa");
     setAuthState({
       isAuthenticated: false,
       token: null,

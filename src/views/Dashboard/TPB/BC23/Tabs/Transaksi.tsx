@@ -12,28 +12,43 @@ const TransaksiBC23Page = ({ data = [], setData, setIsComplete }: any) => {
     const [isAsuransiValid, setIsAsuransiValid] = useState(true);
     useEffect(() => {
         if (data.kodeIncoterm === "FOB") {
-        const nilaiCif = data.nilaiBarang + data.freight;
-        const fobValue = data.nilaiBarang;
+        const nilaiCif = data.hargaPenyerahan + data.freight;
+        const fobValue = data.hargaPenyerahan;
         setIsFreightValid(false);
         setData((value: any) => ({ ...value, cif: nilaiCif, fob: fobValue }));
-        } else if (data.kodeIncoterm !== "FOB") {
+        } else {
+        setIsFreightValid(true);
         setData((value: any) => ({
             ...value,
-            cif: data.nilaiBarang,
+            cif: data.hargaPenyerahan,
             fob: 0,
+            freight: 0,
         }));
         }
-    }, [data.kodeIncoterm, data.nilaiBarang, data.freight]);
+    }, [data.kodeIncoterm, data.hargaPenyerahan, data.freight]);
 
+    useEffect(() => {
+        data.cif = data.hargaPenyerahan + data.freight + data.asuransi + (data.biayaTambahan - data.biayaPengurang);
+        setData((value: any) => ({ ...value, cif: data.cif }));
+        data.fob = data.hargaPenyerahan + (data.biayaTambahan - data.biayaPengurang);
+        setData((value: any) => ({ ...value, fob: data.fob }));
+
+        data.nilaiBarang = data.ndpbm * data.cif;
+        setData((value: any) => ({ ...value, nilaiBarang: data.nilaiBarang }));
+    },[data.biayaTambahan, data.biayaPengurang, data.fob, data.freight, data.hargaPenyerahan, data.asuransi, data.ndpbm]);
     useEffect(() => {
         if (data.kodeAsuransi === "LN") {
             setIsAsuransiValid(false);
+            if(data.kodeIncoterm === "CIF") {
+                setIsAsuransiValid(true);
+                setData((value: any) => ({ ...value, asuransi: 0 }));
+            }
             
         } else {
             setIsAsuransiValid(true);
             setData((value: any) => ({  ...value, asuransi: 0 }));
         }
-    }, [data.kodeAsuransi]);
+    }, [data.kodeAsuransi, data.kodeIncoterm]);
 
     useEffect(() => {
         const fetchRate = async () => {
@@ -103,9 +118,9 @@ const TransaksiBC23Page = ({ data = [], setData, setIsComplete }: any) => {
             />
             <Card.Numeric
                 label={"\u00A0"}
-                name="nilaiBarang"
-                value={data.nilaiBarang}
-                onChange={(val) => setData((prev: any) => ({ ...prev, nilaiBarang: val }))}
+                name="hargaPenyerahan"
+                value={data.hargaPenyerahan}
+                onChange={(val) => setData((prev: any) => ({ ...prev, hargaPenyerahan: val }))}
                 readonly={false}
             />
         </div>
@@ -119,7 +134,7 @@ const TransaksiBC23Page = ({ data = [], setData, setIsComplete }: any) => {
             <Card.Numeric
                 label="Nilai Pabean"
                 name="nilaiPabean"
-                value={data.cif * data.ndpbm}
+                value={data.nilaiBarang}
                 // onChange={(val) => setData((prev: any) => ({ ...prev, nilaiPabean: val }))}
                 readonly={true}
             />
@@ -147,7 +162,7 @@ const TransaksiBC23Page = ({ data = [], setData, setIsComplete }: any) => {
                 name="fob"
                 value={data.fob}
                 onChange={(val) => setData((prev: any) => ({ ...prev, fob: val }))}
-                readonly={false}
+                readonly={true}
             />
             <Card.Numeric
                 label="Freight"
