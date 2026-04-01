@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import Header from "../Tabs/Header";
 import Entitas from "../Tabs/Entitas";
 import Tabs from 'react-bootstrap/Tabs';
@@ -20,8 +20,11 @@ import Pernyataan from "../Tabs/Pernyataan";
 import Pungutan from "../Tabs/Pungutan";
 import { useNavigate } from "react-router-dom";
 const BASE_ROUTE = "/dashboard/tpb/bc23";
-const BC23CreateView = () => {
+import { useLocation } from "react-router-dom";
+
+const BC23View = () => {
   const navigate = useNavigate();
+  const location = useLocation();
   const [isCompleteAll, setIsCompleteAll] = useState(false);
   const [isCompleteHeader, setIsCompleteHeader] = useState(false);
   const [isCompleteEntitas, setIsCompleteEntitas] = useState(false);
@@ -32,33 +35,39 @@ const BC23CreateView = () => {
   const [isCompleteBarang, setIsCompleteBarang] = useState(false);
   const [isCompletePungutan, setIsCompletePungutan] = useState(false);
   const [isCompletePernyataan, setIsCompletePernyataan] = useState(false);
-  const [data, setData] = useState<BC23Request>({
-        ...defaultBC23Request
-    });
-    const [isLoading, setIsLoading] = useState(true);
+  const [data, setData] = useState<BC23Request>(() => {
+    // Cek jika ada data dari navigasi (edit)
+    if (location.state && location.state.data) {
+      const dataEdit = location.state.data;
+      // Pastikan pengangkut selalu array
+      return { ...dataEdit, pengangkut: Array.isArray(dataEdit.pengangkut) ? dataEdit.pengangkut : [dataEdit.pengangkut || {}] };
+    }
+    return { ...defaultBC23Request };
+  });
+  const [isLoading, setIsLoading] = useState(false);
 
-    useEffect(() => {
-    let mounted = true;
-
-    const generate = async () => {
-      setIsLoading(true);
-      const nomorAju = await GenerateAju();
-
-      if (mounted) {
-        setData((prev) => ({ ...prev, nomorAju }));
-        setTimeout(() => setIsLoading(false), 400);
-      }
-    };
-
-    generate();
-
-    return () => {
-      mounted = false;
-    };
-  }, []);
+  // Hanya generate nomor aju jika create baru
+  useEffect(() => {
+    if (!(location.state && location.state.data)) {
+      let mounted = true;
+      const generate = async () => {
+        setIsLoading(true);
+        const nomorAju = await GenerateAju();
+        if (mounted) {
+          setData((prev) => ({ ...prev, nomorAju }));
+          setTimeout(() => setIsLoading(false), 400);
+        }
+      };
+      generate();
+      return () => {
+        mounted = false;
+      };
+    }
+  }, [location.state]);
 
     //set Entitas default from EntitasModels
     useEffect(() => {
+        if (!(location.state && location.state.data)) {
       setData(prev => ({
         ...prev,
         entitas: [
@@ -67,6 +76,7 @@ const BC23CreateView = () => {
           {...entitasPengusaha},
         ]
       }));
+        }
     }, []);
 
     useEffect(() => {
@@ -94,31 +104,31 @@ const BC23CreateView = () => {
       <Form style={{ display: "flex", flexDirection: "column"}}>
       <Tabs defaultActiveKey="header" id="bc23-tabs" className="mb-3" fill variant="tabs" style={{ marginBottom: 16 }}>
         <Tab eventKey="header" title="Header" tabClassName={isCompleteHeader ? "text-success" : "text-danger"}>
-          <Header data={data} setData={setData} setIsComplete={setIsCompleteHeader} readOnlyView={false} />
+          <Header data={data} setData={setData} setIsComplete={setIsCompleteHeader} readOnlyView={true} />
         </Tab>
         <Tab eventKey="entitas" title="Entitas" tabClassName={isCompleteEntitas ? "text-success" : "text-danger"}>
-          <Entitas data={data.entitas} setData={setData} setIsComplete={setIsCompleteEntitas} readOnlyView={false} />
+          <Entitas data={data.entitas} setData={setData} setIsComplete={setIsCompleteEntitas} readOnlyView={true} />
         </Tab>
         <Tab eventKey="dokumen" title="Dokumen" tabClassName={isCompleteDokumen ? "text-success" : "text-danger"}>
-          <Dokumen data={data.dokumen} setData={setData} headers={data} setIsComplete={setIsCompleteDokumen} readOnlyView={false} />
+          <Dokumen data={data.dokumen} setData={setData} headers={data} setIsComplete={setIsCompleteDokumen} readOnlyView={true} />
         </Tab>
         <Tab eventKey="pengangkut" title="Pengangkut" tabClassName={isCompletePengangkut ? "text-success" : "text-danger"}>
-          <Pengangkut data={data.pengangkut} setData={setData} headers={data} setIsComplete={setIsCompletePengangkut} readOnlyView={false} />
+          <Pengangkut data={data.pengangkut} setData={setData} headers={data} setIsComplete={setIsCompletePengangkut} readOnlyView={true} />
         </Tab>
         <Tab eventKey="kemasan" title="Kemasan & Peti Kemas" tabClassName={isCompleteKemasan ? "text-success" : "text-danger"}>
-          <Kemasan data={data} setData={setData} setIsComplete={setIsCompleteKemasan} readOnlyView={false} />
+          <Kemasan data={data} setData={setData} setIsComplete={setIsCompleteKemasan} readOnlyView={true} />
         </Tab>
         <Tab eventKey="transaksi" title="Transaksi" tabClassName={isCompleteTransaksi ? "text-success" : "text-danger"}>
-          <Transaksi data={data} setData={setData} setIsComplete={setIsCompleteTransaksi} readOnlyView={false} />
+          <Transaksi data={data} setData={setData} setIsComplete={setIsCompleteTransaksi} readOnlyView={true} />
         </Tab>
         <Tab eventKey="barang" title="Barang" tabClassName={isCompleteBarang ? "text-success" : "text-danger"}>
-          <Barang data={data.barang} setData={setData} headers={data} setIsComplete={setIsCompleteBarang} readOnlyView={false} />
+          <Barang data={data.barang} setData={setData} headers={data} setIsComplete={setIsCompleteBarang} readOnlyView={true} />
         </Tab>
         <Tab eventKey="pungutan" title="Pungutan" tabClassName={isCompletePungutan ? "text-success" : "text-danger"}>
-          <Pungutan data={data.barang} setData={setData} dataPungutan={data.pungutan} setIsComplete={setIsCompletePungutan} readOnlyView={false} />
+          <Pungutan data={data.barang} setData={setData} dataPungutan={data.pungutan} setIsComplete={setIsCompletePungutan} readOnlyView={true} />
         </Tab>
         <Tab eventKey="pernyataan" title="Pernyataan" tabClassName={isCompletePernyataan ? "text-success" : "text-danger"}>
-          <Pernyataan data={data} setData={setData} setIsComplete={setIsCompletePernyataan} readOnlyView={false} />
+          <Pernyataan data={data} setData={setData} setIsComplete={setIsCompletePernyataan} readOnlyView={true} />
         </Tab>
       </Tabs>
     </Form>
@@ -130,4 +140,4 @@ const BC23CreateView = () => {
   );
 };
 
-export default BC23CreateView;
+export default BC23View;

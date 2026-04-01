@@ -1,11 +1,14 @@
-import { Button } from "react-bootstrap";
+import { Button, Dropdown } from "react-bootstrap";
 import CustomTable from "../../../../../components/TableList";
 import { useNavigate } from "react-router-dom";
-import { FaPlusCircle } from "react-icons/fa";
+import { FaEdit, FaEllipsisV, FaEye, FaPlusCircle } from "react-icons/fa";
 import { bc23Service } from "../../../../../services/support/TPB/BC23/AccessBC23";
 import { useEffect, useState } from "react";
 import LoadingOverlay from "../../../../../components/LoadingOverlay";
 import Card from "../../../../../components/Card";
+import { FaEllipsis, FaEllipsisVertical } from "react-icons/fa6";
+import ActionDropdown from "../../../../../components/ActionDropdown";
+import CustomPagination from "../../../../../components/CustomPagination";
 
 const BASE_ROUTE = "/dashboard/tpb/bc23";
 
@@ -28,6 +31,19 @@ const BC23View = () => {
   const [totalData, setTotalData] = useState(0);
 const pageSize = 2;
 
+
+const GetTPB23ById = async (id: number, route: string) => {
+  setIsLoading(true);
+  try {
+    const result = await bc23Service.getById(id);
+    navigate(`${BASE_ROUTE}/${route}`, { state: { data: result.data } });
+  } catch (error) {
+    console.error("Error fetching BC 2.3 by ID:", error);
+    // Tangani error, misalnya tampilkan pesan error di UI
+  } finally {
+    setIsLoading(false);
+  }
+};
 const totalPages = Math.ceil(totalData / pageSize);
   useEffect(() => {
   const fetchData = async () => {
@@ -52,7 +68,7 @@ const totalPages = Math.ceil(totalData / pageSize);
 }, [currentPage]);
 
   return (
-    <div style={{ position: "relative", minHeight: "calc(100vh - 96px)" }}>
+    <div style={{ position: "relative"}}>
       <LoadingOverlay
         show={isLoading}
         // text="Generating Nomor AJU..."
@@ -62,13 +78,14 @@ const totalPages = Math.ceil(totalData / pageSize);
       bodyStyle={{padding:0, height: "100%"}}>
     <CustomTable<BC23Item>
       title="List BC 2.3"
-      containerStyle={{ background: "#f9fafc" }}
+      containerStyle={{ background: "#f9fafc", height: "calc(100vh - 170px)" }}
       titleStyle={{ fontWeight: 500, fontSize: 18 }}
       headerStyle={{ paddingBottom: 10, marginBottom: 0}}
       actionContainerStyle={{ gap: 15 }}
       tableStyle={{ fontSize: 12, marginBottom: 0}}
       striped={false}
       bordered={false}
+      responsive={false}
       columns={[
         { header: "Nomor Aju", accessor: "nomorAju" },
         { header: "Tanggal Aju", accessor: "tanggalAju" },
@@ -80,10 +97,23 @@ const totalPages = Math.ceil(totalData / pageSize);
         {
           header: "Action",
           accessor: "id",
+          tdStyle: { textAlign: "left" },
           render: (row) => (
-            <Button size="sm" variant="outline-primary">
-              Detail
-            </Button>
+            <ActionDropdown
+              label={<FaEllipsisVertical />}
+              actions={[
+                {
+                  label: "Edit",
+                  icon: <FaEdit />,
+                  onClick: () => GetTPB23ById(Number(row.id), "edit"),
+                },
+                {
+                  label: "View",
+                  icon: <FaEye />,
+                  onClick: () => GetTPB23ById(Number(row.id), "view"),
+                },
+              ]}
+            />
           ),
         },
       ]}
@@ -102,40 +132,11 @@ const totalPages = Math.ceil(totalData / pageSize);
       ]}
     />
     <div style={{ display: "flex", justifyContent: "center", gap: 6, margin: "16px 0" }}>
-
-        <Button
-          size="sm"
-          variant={currentPage === 1 ? "secondary" : "primary"}
-          disabled={currentPage === 1}
-          onClick={() => setCurrentPage((prev) => prev - 1)}
-        >Prev
-        </Button>
-        {Array.from({ length: totalPages }, (_, i) => {
-          const page = i + 1;
-          return (
-            <Button
-              key={page}
-              size="sm"
-              variant={currentPage === page ? "primary" : "outline-primary"}
-              onClick={() => setCurrentPage(page)}
-              style={{
-                minWidth: 32,
-                padding: "4px 8px"
-              }}
-            >
-              {page}
-            </Button>
-          );
-        })}
-        <Button
-          size="sm"
-          variant={currentPage === totalPages ? "secondary" : "primary"}
-          disabled={currentPage === totalPages}
-          onClick={() => setCurrentPage((prev) => prev + 1)}
-        >
-          Next
-        </Button>
-
+      <CustomPagination
+        currentPage={currentPage}
+        totalPages={totalPages}
+        onChange={(p) => setCurrentPage(p)}
+      />
       </div>
     </Card>
     

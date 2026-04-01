@@ -14,11 +14,29 @@ import { ListJenisTarif } from "../../../../../services/loader/ListJenisTarif";
 import { ListPungutan } from "../../../../../services/loader/ListPungutan";
 import { ListFalsitasTarif } from "../../../../../services/loader/ListFasilitasTarif";
 
-export const ModalBarang = ({data, setData, header, setActiveForm}: any) => {
-    const [barang, setBarang] = useState<Barang>(createInitialBarang());
-    const [showForm, setShowForm] = useState(false);
-    const [checkedBMT, setCheckedBMT] = useState(false);
-    const [checkedCukai, setCheckedCukai] = useState(false);
+export const ModalBarang = ({data, setData, header, setActiveForm, editingIndex = null, editData = null, readOnlyView}: any) => {
+  const [barang, setBarang] = useState<Barang>(editData ? editData : createInitialBarang());
+  const [showForm, setShowForm] = useState(false);
+  const [checkedBMT, setCheckedBMT] = useState(false);
+      // Set checkedBMT true saat edit jika ada BMAD, BMTP, BMI, BMP
+      useEffect(() => {
+        if (editData && Array.isArray(editData.barangTarif)) {
+          const hasBMT = editData.barangTarif.some((item: any) =>
+            ["BMAD", "BMTP", "BMI", "BMP"].includes(item.kodeJenisPungutan)
+          );
+          setCheckedBMT(hasBMT);
+        }
+      }, [editData]);
+  const [checkedCukai, setCheckedCukai] = useState(false);
+
+  // Jika editData berubah (misal user klik edit), isi form dengan data yang diedit
+  useEffect(() => {
+    if (editData) {
+      setBarang(editData);
+    } else {
+      setBarang(createInitialBarang());
+    }
+  }, [editData]);
     
     
     const generateSeri = () => {
@@ -26,6 +44,7 @@ export const ModalBarang = ({data, setData, header, setActiveForm}: any) => {
         const maxSeri = Math.max(...data.map((item: any) => parseInt(item.seriBarang)));
         return (maxSeri + 1).toString();
     }
+    // Simpan data baru atau update data jika edit
     const handleSimpan = () => {
       if (!barang.kodeBarang || !barang.uraian || 
           !barang.jumlahSatuan || !barang.kodeSatuanBarang) {
@@ -33,10 +52,27 @@ export const ModalBarang = ({data, setData, header, setActiveForm}: any) => {
         return;
       }
 
-      setData((prev: any) => ({
-        ...prev,
-        barang: [...(prev.barang || []), barang],
-      }));
+      if (editingIndex !== null && editingIndex !== undefined) {
+        // Edit mode: update barang pada index tertentu, seriBarang tidak berubah
+        setData((prev: any) => {
+          const updatedBarang = [...(prev.barang || [])];
+          updatedBarang[editingIndex] = barang;
+          return {
+            ...prev,
+            barang: updatedBarang,
+          };
+        });
+      } else {
+        // Tambah baru, seriBarang auto increment
+        const nextSeri = generateSeri();
+        setData((prev: any) => ({
+          ...prev,
+          barang: [
+            ...(prev.barang || []),
+            { ...barang, seriBarang: nextSeri },
+          ],
+        }));
+      }
 
       setBarang(createInitialBarang());
       setActiveForm(null);
@@ -138,36 +174,59 @@ export const ModalBarang = ({data, setData, header, setActiveForm}: any) => {
     });
 };
 
-    console.log("Data Barang:", barang);
-    console.log("Data Barang Tarif:", barang.barangTarif);
     const pushUraianHS = () => {
         let generatedUraian = barang.kodeBarang;
         updateBarang("uraian", generatedUraian);
     }
 
     useEffect(() => {
+      if (!barang || !header) return;
       
-      barang.fob = barang.hargaPenyerahan + barang.nilaiTambah;
-      barang.cif = barang.fob + barang.freight + barang.asuransi;
-      barang.hargaSatuan = Math.ceil( (barang.fob / barang.jumlahSatuan)* 100 ) / 100;
-      barang.cifRupiah = barang.cif * header.ndpbm;
-      barang.freight = barang.hargaPenyerahan * (header.freight / 100);
-      barang.asuransi = Math.ceil( barang.hargaPenyerahan * (header.asuransi / 100) * 100 ) / 100;
-      barang.nilaiBarang = header.ndpbm * barang.cif;
-      barang.nilaiTambah = barang.hargaPenyerahan * (header.biayaTambahan / 100) - barang.hargaPenyerahan * (header.biayaPengurang / 100);
-      setBarang((prev) => ({
+      const persenatase = header.fob ? header.freight / header.fob : 0;
+      const nilaiTambah = barang.nilaiBarang * (header.biayaTambahan / 100) - barang.nilaiBarang * (header.biayaPengurang / 100);
+      const fob = barang.nilaiBarang + nilaiTambah;
+      const freight = persenatase * fob;
+      const asuransi = Math.ceil(((fob + freight) * 0.005)* 100 )/ 100;
+      const cif = fob + freight + asuransi;
+      const hargaSatuan = barang.jumlahSatuan ? Math.ceil((fob / barang.jumlahSatuan) * 100) / 100 : 0;
+      const cifRupiah = cif * header.ndpbm;
+
+      setBarang((prev: any) => {
+      if (
+        prev.fob === fob &&
+        prev.cif === cif &&
+        prev.hargaSatuan === hargaSatuan &&
+        prev.cifRupiah === cifRupiah &&
+        prev.freight === freight &&
+        prev.asuransi === asuransi &&
+        prev.nilaiTambah === nilaiTambah
+      ) {
+        return prev; // tidak update → tidak trigger ulang
+      }
+
+      return {
         ...prev,
-          cif: barang.cif,
-          fob: barang.fob,
-          hargaSatuan: barang.hargaSatuan,
-          cifRupiah: barang.cifRupiah,
-          freight: barang.freight,
-          asuransi: barang.asuransi,
-          nilaiBarang: barang.nilaiBarang,
-          nilaiTambah: barang.nilaiTambah
-      }));
-    }, [barang.cif, barang.fob, barang.hargaSatuan, barang.cifRupiah, barang.freight, barang.asuransi, barang.nilaiBarang, barang.nilaiTambah, barang.hargaPenyerahan, barang.jumlahSatuan, header.asuransi, header.freight, header.ndpbm, header.biayaTambahan, header.biayaPengurang]);
-    const bmItem = barang.barangTarif?.find((item: any) =>
+        fob,
+        cif,
+        hargaSatuan,
+        cifRupiah,
+        freight,
+        asuransi,
+        nilaiTambah,
+      };
+    });
+  }, [
+    barang.nilaiBarang,
+    barang.jumlahSatuan,
+    header.freight,
+    header.fob,
+    header.ndpbm,
+    header.biayaTambahan,
+    header.biayaPengurang,
+  ]);
+
+
+  const bmItem = barang.barangTarif?.find((item: any) =>
         ["BM", "BMKITE"].includes(item.kodeJenisPungutan)
     );
     const [IsSpecificBM, setIsSpecificBM] = useState(false);
@@ -175,6 +234,7 @@ export const ModalBarang = ({data, setData, header, setActiveForm}: any) => {
     const [IsSpecificBMI, setIsSpecificBMI] = useState(false);
     const [IsSpecificBMP, setIsSpecificBMP] = useState(false);
     const [IsSpecificBMTP, setIsSpecificBMTP] = useState(false);
+    const [IsSpecificCukai, setIsSpecificCukai] = useState(false);
     useEffect(() => {
         const list = barang.barangTarif ?? [];
 
@@ -211,14 +271,28 @@ export const ModalBarang = ({data, setData, header, setActiveForm}: any) => {
         setIsSpecificBMI(prev => prev !== bmi ? bmi : prev);
         setIsSpecificBMP(prev => prev !== bmp ? bmp : prev);
         setIsSpecificBMTP(prev => prev !== bmtp ? bmtp : prev);
-
+        const cukai = list.some(
+            (item: any) =>
+                item.kodeJenisPungutan === "Cukai" &&
+                item.kodeJenisTarif === "2"
+        );
+        setIsSpecificCukai(prev => prev !== cukai ? cukai : prev);
     }, [barang.barangTarif]);
+
+    useEffect(() => {
+      barang.ndpbm = header.ndpbm;
+    }, [header.ndpbm]);
     return (
     <div>
         <Card
           title="Tambah Barang"
           headerStyle={{ backgroundColor: "#f5f5f5"}}
           headerCustom={(
+            readOnlyView ? 
+            <Button size="sm" variant="outline-secondary" style={{ display: "flex", alignItems:"center", justifyContent:"center", gap: 4 , borderRadius: 0, fontSize: 12 }} 
+                onClick={() => {setActiveForm(false);}}> 
+                <span style={{paddingTop:1, minWidth:70}}>Kembali</span>                
+            </Button> : (
             <div style={{ display: "flex", flexDirection: "row", gap: 8 }}>
                 <Button size="sm" variant="primary" style={{ display: "flex", alignItems:"center", justifyContent:"center", gap: 4 , borderRadius: 0, fontSize: 12 }} 
                     onClick={() => { handleSimpan();}}>
@@ -229,6 +303,7 @@ export const ModalBarang = ({data, setData, header, setActiveForm}: any) => {
                     <span style={{paddingTop:1, minWidth:70}}>Batal</span>                
                 </Button>
             </div>
+            )
           )}
         >
         <div style={{ display: "flex", flexDirection: "row", gap: 8 }}>
@@ -251,7 +326,7 @@ export const ModalBarang = ({data, setData, header, setActiveForm}: any) => {
               onChange={(val) => updateBarang("posTarif", val)}
               error={!barang.posTarif ? "HS wajib diisi" : ""}
               list={[]} // ganti dengan list kode barang yang valid
-              readonly={false}
+              readonly={readOnlyView}
             />
             <div style={{ display: "flex", flexDirection: "column", fontWeight: 500, fontSize: 12, gap: 4, marginBottom: 8}}>
               <span>Lartas</span>
@@ -265,8 +340,7 @@ export const ModalBarang = ({data, setData, header, setActiveForm}: any) => {
               name="kodeBarang"
               value={barang.kodeBarang}
               onChange={(val) => updateBarang("kodeBarang", val)}
-              error={!barang.kodeBarang ? "Kode Barang wajib diisi" : ""}
-              readonly={false}
+              readonly={readOnlyView}
             />
 
             <Card.Textarea
@@ -274,12 +348,14 @@ export const ModalBarang = ({data, setData, header, setActiveForm}: any) => {
                 <>
                 <div style={{ display: "flex", flexDirection: "row", justifyContent: "space-between", alignItems: "center", gap: 6 }}>
                   Uraian
+                  {!readOnlyView && (
                   <Button size="sm" variant="primary" style={{ display: "flex", alignItems:"center", justifyContent:"center", gap: 4 , borderRadius: 0, fontSize: 12 }} 
                     onClick={() => {
                       pushUraianHS();
                     }}>
                     <span style={{paddingTop:1, minWidth:70}}>Sesuai HS</span>
                   </Button>
+                  )}
                   </div>
                 </>
               }
@@ -287,7 +363,7 @@ export const ModalBarang = ({data, setData, header, setActiveForm}: any) => {
               value={barang.uraian}
               onChange={(val) => updateBarang("uraian", val.target.value)}
               error={!barang.uraian ? "Uraian wajib diisi" : ""}
-              readonly={false}
+              readonly={readOnlyView}
             />
             
             <Card.Input
@@ -295,8 +371,7 @@ export const ModalBarang = ({data, setData, header, setActiveForm}: any) => {
               name="merk"
               value={barang.merk}
               onChange={(val) => updateBarang("merk", val)}
-              error={!barang.merk ? "Merk wajib diisi" : ""}
-              readonly={false}
+              readonly={readOnlyView}
             />
 
             <Card.Input
@@ -304,16 +379,14 @@ export const ModalBarang = ({data, setData, header, setActiveForm}: any) => {
               name="tipe"
               value={barang.tipe}
               onChange={(val) => updateBarang("tipe", val)}
-              error={!barang.tipe ? "Tipe wajib diisi" : ""}
-              readonly={false}
+              readonly={readOnlyView}
             />
             <Card.Input
               label="Ukuran"
               name="ukuran"
               value={barang.ukuran}
               onChange={(val) => updateBarang("ukuran", val)}
-              error={!barang.ukuran ? "Ukuran wajib diisi" : ""}
-              readonly={false}
+              readonly={readOnlyView}
             />
 
             <Card.Input
@@ -321,8 +394,7 @@ export const ModalBarang = ({data, setData, header, setActiveForm}: any) => {
               name="spesifikasiLain"
               value={barang.spesifikasiLain}
               onChange={(val) => updateBarang("spesifikasiLain", val)}
-              error={!barang.spesifikasiLain ? "Spesifikasi Lain wajib diisi" : ""}
-              readonly={false}
+              readonly={readOnlyView}
             />
           </Card>
 
@@ -342,9 +414,8 @@ export const ModalBarang = ({data, setData, header, setActiveForm}: any) => {
                       onChange={(val) => {updateBarang("kodeKategoriBarang", val),
                         updateBarang("kodeDokumen", ListKategoriBarang.find(item => item.kodeKategoriBarang === val)?.kodeDokumen)
                       }}
-                      error={!barang.kodeKategoriBarang ? "Kategori Barang wajib diisi" : ""}
                       list={ListKategoriBarang.map(item => ({ value: item.kodeKategoriBarang, label: `${item.kodeKategoriBarang} - ${item.uraian}` }))} // ganti dengan list kode kategori yang valid
-                      readonly={false}
+                      readonly={readOnlyView}
                   />
                   <Card.Select
                       label="Negara"
@@ -353,7 +424,7 @@ export const ModalBarang = ({data, setData, header, setActiveForm}: any) => {
                       onChange={(val) => updateBarang("kodeNegaraAsal", val)}
                       error={!barang.kodeNegaraAsal ? "Kode Negara wajib diisi" : ""}
                       list={ListNegara.map(item => ({ value: item.value, label: `${item.value} - ${item.label}` }))} // ganti dengan list kode negara yang valid
-                      readonly={false} 
+                      readonly={readOnlyView} 
                   />
               </Card>
               <Card
@@ -362,11 +433,11 @@ export const ModalBarang = ({data, setData, header, setActiveForm}: any) => {
                   >
                     <Card.Numeric
                         label="Harga"
-                        name="hargaPenyerahan"
-                        value={barang.hargaPenyerahan}
-                        onChange={(val) => updateBarang("hargaPenyerahan", val)}
-                        readonly={false}
-                        error={barang.hargaPenyerahan <= 0 ? "Harga harus lebih dari 0" : ""}
+                        name="nilaiBarang"
+                        value={barang.nilaiBarang}
+                        onChange={(val) => updateBarang("nilaiBarang", val)}
+                        readonly={readOnlyView}
+                        error={barang.nilaiBarang <= 0 ? "Harga harus lebih dari 0" : ""}
                     />
                     <Card.Numeric
                         label="Biaya Tambahan"
@@ -412,9 +483,9 @@ export const ModalBarang = ({data, setData, header, setActiveForm}: any) => {
                     />
                     <Card.Numeric
                         label="Nilai Pabean"
-                        name="nilaiBarang"
-                        value={barang.nilaiBarang}
-                        onChange={(val) => updateBarang("nilaiBarang", val)}
+                        name="cifRupiah"
+                        value={barang.cifRupiah}
+                        onChange={(val) => updateBarang("cifRupiah", val)}
                         readonly={true}
                     />
               </Card>
@@ -434,8 +505,7 @@ export const ModalBarang = ({data, setData, header, setActiveForm}: any) => {
                       name="jumlahSatuan"
                       value={barang.jumlahSatuan}
                       onChange={(val) => updateBarang("jumlahSatuan", val)}
-                      readonly={false}
-                      error={barang.jumlahSatuan <= 0 ? "Jumlah Satuan harus lebih dari 0" : ""}
+                      readonly={readOnlyView}
                   />
                   <Card.Select
                       label={"\u00A0"}
@@ -444,7 +514,7 @@ export const ModalBarang = ({data, setData, header, setActiveForm}: any) => {
                       onChange={(val) => updateBarang("kodeSatuanBarang", val)}
                       error={!barang.kodeSatuanBarang ? "Kode Satuan wajib diisi" : ""}
                       list={ListSatuanBarang.map((item) => ({ label: `${item.tableKey} - ${item.tableValue}`, value: item.tableKey }))} // ganti dengan list kode satuan yang valid
-                      readonly={false}
+                      readonly={readOnlyView}
                   />
                 </div>
                 <div style={{display:"flex", flexDirection:"row", gap: 8}}>
@@ -453,7 +523,7 @@ export const ModalBarang = ({data, setData, header, setActiveForm}: any) => {
                       name="jumlahKemasan"
                       value={barang.jumlahKemasan}
                       onChange={(val) => updateBarang("jumlahKemasan", val)}
-                      readonly={false}
+                      readonly={readOnlyView}
                       error={barang.jumlahKemasan <= 0 ? "Jumlah Kemasan harus lebih dari 0" : ""}
                   />
                   <Card.Select
@@ -463,7 +533,7 @@ export const ModalBarang = ({data, setData, header, setActiveForm}: any) => {
                       onChange={(val) => updateBarang("kodeJenisKemasan", val)}
                       error={!barang.kodeJenisKemasan ? "Kode Jenis Kemasan wajib diisi" : ""}
                       list={ListJenisKemasan.map((item) => ({ label: `${item.value} - ${item.label}`, value: item.value }))} // ganti dengan list kode jenis kemasan yang valid
-                      readonly={false}
+                      readonly={readOnlyView}
                   />
                 </div>
                   <Card.Numeric
@@ -471,17 +541,18 @@ export const ModalBarang = ({data, setData, header, setActiveForm}: any) => {
                       name="netto"
                       value={barang.netto}
                       onChange={(val) => updateBarang("netto", val)}
-                      readonly={false}
-                      error={barang.netto <= 0 ? "Berat Bersih harus lebih dari 0" : ""}
+                      readonly={readOnlyView}
                   />
               </Card>
               <Card
                   title="Dokumen Fasilitas/Lartas"
                   style={{ height:"100%"}}
                   headerCustom={(
+                        readOnlyView ? null : (
                               <Button size="sm" variant="primary" style={{ display: "flex", alignItems:"center", justifyContent:"center", gap: 4 , borderRadius: 0, fontSize: 12 }} onClick={() => setShowForm(true)}>
                                   <FaPlusCircle/><span style={{paddingTop:1}}>Tambah</span>                
                               </Button>
+                          )
                             )}
                   >
                   <CustomTable
@@ -555,11 +626,10 @@ export const ModalBarang = ({data, setData, header, setActiveForm}: any) => {
                           name="kodeJenisPungutan"
                           value={bmItem?.kodeJenisPungutan || ""}
                           onChange={(val) => {updateBarangTarifOpsional(val.toString())}}
-                          error={!bmItem?.kodeJenisPungutan ? "Kategori Barang wajib diisi" : ""}
-                        list={ListPungutan?.filter(item => 
+                          list={ListPungutan?.filter(item => 
                                   ["BM", "BMKITE"].includes(item.value)
                               )}
-                          readonly={false}
+                          readonly={readOnlyView}
                       />
                       <Card.Select
                           label="Jenis Tarif"
@@ -574,9 +644,8 @@ export const ModalBarang = ({data, setData, header, setActiveForm}: any) => {
                               val
                             );
                           }}
-                          error={!bmItem?.kodeJenisTarif ? "Kategori Barang wajib diisi" : ""}
                           list={ListJenisTarif}
-                          readonly={false}
+                          readonly={readOnlyView}
                       />
                     </div>
                   {IsSpecificBM && (
@@ -595,7 +664,7 @@ export const ModalBarang = ({data, setData, header, setActiveForm}: any) => {
                             );
                           }
                         }
-                      readonly={false}
+                      readonly={readOnlyView}
                     />
                     <Card.Select
                       label="Satuan Barang"
@@ -609,9 +678,8 @@ export const ModalBarang = ({data, setData, header, setActiveForm}: any) => {
                               val
                             );
                           }}
-                      error={!bmItem?.kodeSatuanBarang ? "Kode Satuan wajib diisi" : ""}
                       list={ListSatuanBarang.map((item) => ({ label: `${item.tableKey} - ${item.tableValue}`, value: item.tableKey }))} // ganti dengan list kode satuan yang valid
-                      readonly={false}
+                      readonly={readOnlyView}
                     />
                     </div>
                   )}
@@ -628,9 +696,8 @@ export const ModalBarang = ({data, setData, header, setActiveForm}: any) => {
                               val
                             );
                           }}
-                      readonly={false}
+                      readonly={readOnlyView}
                       labelUnit={{"1": "%", "2": "", null:""}[bmItem?.kodeJenisTarif || "1"]}
-                      error={(bmItem?.tarif ?? 0) < 0 ? "Tarif tidak boleh negatif" : ""}
                   />
                    <Card.Select
                       label="Fasilitas Tarif"
@@ -645,9 +712,8 @@ export const ModalBarang = ({data, setData, header, setActiveForm}: any) => {
                         );
                         updateBarang("kodeDokumen", ListKategoriBarang.find(item => item.kodeKategoriBarang === val)?.kodeDokumen)
                       }}
-                      //error={!bmItem?.kodeFasilitasTarif ? "Kategori Barang wajib diisi" : ""}
                       list={ListFalsitasTarif} // ganti dengan list kode kategori yang valid
-                      readonly={false}
+                      readonly={readOnlyView}
                   />
                   <Card.Numeric
                       label="Tarif Fasilitas"
@@ -661,9 +727,8 @@ export const ModalBarang = ({data, setData, header, setActiveForm}: any) => {
                               val
                             );
                       }}
-                      readonly={false}
+                      readonly={readOnlyView}
                       labelUnit={{"1": "%", "2": "", null:""}[bmItem?.kodeJenisTarif || "1"]}
-                      error={(bmItem?.tarifFasilitas ?? 0) < 0 ? "Tarif tidak boleh negatif" : ""}
                   />
                   </div>
                   </div>
@@ -703,9 +768,8 @@ export const ModalBarang = ({data, setData, header, setActiveForm}: any) => {
                           name="kodeJenisTarif"
                           value={barang.barangTarif.filter((item: any) => item.kodeJenisPungutan === "BMAD")[0]?.kodeJenisTarif}
                           onChange={(val) => {updateBarangTarifOpsional("BMAD","kodeJenisTarif", val)}}
-                          error={!barang.barangTarif.filter((item: any) => item.kodeJenisPungutan === "BMAD")[0]?.kodeJenisTarif ? "Kategori Barang wajib diisi" : ""}
                           list={ListJenisTarif}
-                          readonly={false}
+                          readonly={readOnlyView}
                       />
                     </div>
                   {IsSpecificBMAD && (
@@ -715,16 +779,15 @@ export const ModalBarang = ({data, setData, header, setActiveForm}: any) => {
                       name="JumlahSatuan"
                       value={barang.barangTarif.filter((item: any) => item.kodeJenisPungutan === "BMAD")[0]?.jumlahSatuan}
                       onChange={(val) => updateBarangTarifOpsional("BMAD","jumlahSatuan", val)} 
-                      readonly={false}
+                      readonly={readOnlyView}
                     />
                     <Card.Select
                       label="Satuan Barang"
                       name="SatuanBarang"
                       value={barang.barangTarif.filter((item: any) => item.kodeJenisPungutan === "BMAD")[0]?.kodeSatuanBarang}
                       onChange={(val) => updateBarangTarifOpsional("BMAD","kodeSatuanBarang", val)}
-                      error={!barang.barangTarif.filter((item: any) => item.kodeJenisPungutan === "BMAD")[0]?.kodeSatuanBarang ? "Kode Satuan wajib diisi" : ""}
                       list={ListSatuanBarang.map((item) => ({ label: `${item.tableKey} - ${item.tableValue}`, value: item.tableKey }))} // ganti dengan list kode satuan yang valid
-                      readonly={false}
+                      readonly={readOnlyView}
                     />
                     </div>
                   )}
@@ -734,9 +797,8 @@ export const ModalBarang = ({data, setData, header, setActiveForm}: any) => {
                       name="tarif"
                       value={barang.barangTarif.filter((item: any) => item.kodeJenisPungutan === "BMAD")[0]?.tarif}
                       onChange={(val) => updateBarangTarifOpsional("BMAD","tarif", val)}
-                      readonly={false}
+                      readonly={readOnlyView}
                       labelUnit={{"1": "%", "2": "", null:""}[barang.barangTarif.filter((item: any) => item.kodeJenisPungutan === "BMAD")[0]?.kodeJenisTarif || "1"]}
-                      error={barang.barangTarif.filter((item: any) => item.kodeJenisPungutan === "BMAD")[0]?.tarif < 0 ? "Tarif tidak boleh negatif" : ""}
                   />
                    <Card.Select
                       label="Fasilitas Tarif"
@@ -745,18 +807,16 @@ export const ModalBarang = ({data, setData, header, setActiveForm}: any) => {
                       onChange={(val) => {updateBarangTarifOpsional("BMAD","kodeFasilitasTarif", val),
                         updateBarang("kodeDokumen", ListKategoriBarang.find(item => item.kodeKategoriBarang === val)?.kodeDokumen)
                       }}
-                      //error={!barang.barangTarif.filter((item: any) => item.kodeJenisPungutan === "BMAD")[0]?.kodeFasilitasTarif ? "Kategori Barang wajib diisi" : ""}
                       list={ListFalsitasTarif} // ganti dengan list kode kategori yang valid
-                      readonly={false}
+                      readonly={readOnlyView}
                   />
                   <Card.Numeric
                       label="Tarif Fasilitas"
                       name="tarifFasilitas"
                       value={barang.barangTarif.filter((item: any) => item.kodeJenisPungutan === "BMAD")[0]?.tarifFasilitas}
                       onChange={(val) => updateBarangTarifOpsional("BMAD","tarifFasilitas", val)}
-                      readonly={false}
+                      readonly={readOnlyView}
                       labelUnit={{"1": "%", "2": "", null:""}[barang.barangTarif.filter((item: any) => item.kodeJenisPungutan === "BMAD")[0]?.kodeJenisTarif || "1"]}
-                      error={barang.barangTarif.filter((item: any) => item.kodeJenisPungutan === "BMAD")[0]?.tarifFasilitas < 0 ? "Tarif tidak boleh negatif" : ""}
                   />
                   </div>
                   </div>
@@ -777,9 +837,8 @@ export const ModalBarang = ({data, setData, header, setActiveForm}: any) => {
                           name="kodeJenisTarif"
                           value={barang.barangTarif.filter((item: any) => item.kodeJenisPungutan === "BMTP")[0]?.kodeJenisTarif}
                           onChange={(val) => {updateBarangTarifOpsional("BMTP","kodeJenisTarif", val)}}
-                          error={!barang.barangTarif.filter((item: any) => item.kodeJenisPungutan === "BMTP")[0]?.kodeJenisTarif ? "Kategori Barang wajib diisi" : ""}
                           list={ListJenisTarif}
-                          readonly={false}
+                          readonly={readOnlyView}
                       />
                     </div>
                   {IsSpecificBMTP && (
@@ -789,16 +848,15 @@ export const ModalBarang = ({data, setData, header, setActiveForm}: any) => {
                       name="JumlahSatuan"
                       value={barang.barangTarif.filter((item: any) => item.kodeJenisPungutan === "BMTP")[0]?.jumlahSatuan}
                       onChange={(val) => updateBarangTarifOpsional("BMTP","jumlahSatuan", val)} 
-                      readonly={false}
+                      readonly={readOnlyView}
                     />
                     <Card.Select
                       label="Satuan Barang"
                       name="SatuanBarang"
                       value={barang.barangTarif.filter((item: any) => item.kodeJenisPungutan === "BMTP")[0]?.kodeSatuanBarang}
                       onChange={(val) => updateBarangTarifOpsional("BMTP","kodeSatuanBarang", val)}
-                      error={!barang.barangTarif.filter((item: any) => item.kodeJenisPungutan === "BMTP")[0]?.kodeSatuanBarang ? "Kode Satuan wajib diisi" : ""}
                       list={ListSatuanBarang.map((item) => ({ label: `${item.tableKey} - ${item.tableValue}`, value: item.tableKey }))} // ganti dengan list kode satuan yang valid
-                      readonly={false}
+                      readonly={readOnlyView}
                     />
                     </div>
                   )}
@@ -808,29 +866,26 @@ export const ModalBarang = ({data, setData, header, setActiveForm}: any) => {
                       name="tarif"
                       value={barang.barangTarif.filter((item: any) => item.kodeJenisPungutan === "BMTP")[0]?.tarif}
                       onChange={(val) => updateBarangTarifOpsional("BMTP","tarif", val)}
-                      readonly={false}
+                      readonly={readOnlyView}
                       labelUnit={{"1": "%", "2": "", null:""}[barang.barangTarif.filter((item: any) => item.kodeJenisPungutan === "BMTP")[0]?.kodeJenisTarif || "1"]}
-                      error={barang.barangTarif.filter((item: any) => item.kodeJenisPungutan === "BMTP")[0]?.tarif < 0 ? "Tarif tidak boleh negatif" : ""}
                   />
-                   <Card.Select
+                  <Card.Select
                       label="Fasilitas Tarif"
                       name="kodeFasilitasTarif"
                       value={barang.barangTarif.filter((item: any) => item.kodeJenisPungutan === "BMTP")[0]?.kodeFasilitasTarif}
                       onChange={(val) => {updateBarangTarifOpsional("BMTP","kodeFasilitasTarif", val),
                         updateBarang("kodeDokumen", ListKategoriBarang.find(item => item.kodeKategoriBarang === val)?.kodeDokumen)
                       }}
-                      //error={!barang.barangTarif.filter((item: any) => item.kodeJenisPungutan === "BMTP")[0]?.kodeFasilitasTarif ? "Kategori Barang wajib diisi" : ""}
                       list={ListFalsitasTarif} // ganti dengan list kode kategori yang valid
-                      readonly={false}
+                      readonly={readOnlyView}
                   />
                   <Card.Numeric
                       label="Tarif Fasilitas"
                       name="tarifFasilitas"
                       value={barang.barangTarif.filter((item: any) => item.kodeJenisPungutan === "BMTP")[0]?.tarifFasilitas}
                       onChange={(val) => updateBarangTarifOpsional("BMTP","tarifFasilitas", val)}
-                      readonly={false}
+                      readonly={readOnlyView}
                       labelUnit={{"1": "%", "2": "", null:""}[barang.barangTarif.filter((item: any) => item.kodeJenisPungutan === "BMTP")[0]?.kodeJenisTarif || "1"]}
-                      error={barang.barangTarif.filter((item: any) => item.kodeJenisPungutan === "BMTP")[0]?.tarifFasilitas < 0 ? "Tarif tidak boleh negatif" : ""}
                   />
                   </div>
                   </div>
@@ -851,9 +906,8 @@ export const ModalBarang = ({data, setData, header, setActiveForm}: any) => {
                           name="kodeJenisTarif"
                           value={barang.barangTarif.filter((item: any) => item.kodeJenisPungutan === "BMI")[0]?.kodeJenisTarif}
                           onChange={(val) => {updateBarangTarifOpsional("BMI","kodeJenisTarif", val)}}
-                          error={!barang.barangTarif.filter((item: any) => item.kodeJenisPungutan === "BMI")[0]?.kodeJenisTarif ? "Kategori Barang wajib diisi" : ""}
                           list={ListJenisTarif}
-                          readonly={false}
+                          readonly={readOnlyView}
                       />
                     </div>
                   {IsSpecificBMI && (
@@ -863,16 +917,15 @@ export const ModalBarang = ({data, setData, header, setActiveForm}: any) => {
                       name="JumlahSatuan"
                       value={barang.barangTarif.filter((item: any) => item.kodeJenisPungutan === "BMI")[0]?.jumlahSatuan}
                       onChange={(val) => updateBarangTarifOpsional("BMI","jumlahSatuan", val)} 
-                      readonly={false}
+                      readonly={readOnlyView}
                     />
                     <Card.Select
                       label="Satuan Barang"
                       name="SatuanBarang"
                       value={barang.barangTarif.filter((item: any) => item.kodeJenisPungutan === "BMI")[0]?.kodeSatuanBarang}
                       onChange={(val) => updateBarangTarifOpsional("BMI","kodeSatuanBarang", val)}
-                      error={!barang.barangTarif.filter((item: any) => item.kodeJenisPungutan === "BMI")[0]?.kodeSatuanBarang ? "Kode Satuan wajib diisi" : ""}
                       list={ListSatuanBarang.map((item) => ({ label: `${item.tableKey} - ${item.tableValue}`, value: item.tableKey }))} // ganti dengan list kode satuan yang valid
-                      readonly={false}
+                      readonly={readOnlyView}
                     />
                     </div>
                   )}
@@ -882,9 +935,8 @@ export const ModalBarang = ({data, setData, header, setActiveForm}: any) => {
                       name="tarif"
                       value={barang.barangTarif.filter((item: any) => item.kodeJenisPungutan === "BMI")[0]?.tarif}
                       onChange={(val) => updateBarangTarifOpsional("BMI","tarif", val)}
-                      readonly={false}
+                      readonly={readOnlyView}
                       labelUnit={{"1": "%", "2": "", null:""}[barang.barangTarif.filter((item: any) => item.kodeJenisPungutan === "BMI")[0]?.kodeJenisTarif || "1"]}
-                      error={barang.barangTarif.filter((item: any) => item.kodeJenisPungutan === "BMI")[0]?.tarif < 0 ? "Tarif tidak boleh negatif" : ""}
                   />
                    <Card.Select
                       label="Fasilitas Tarif"
@@ -893,18 +945,16 @@ export const ModalBarang = ({data, setData, header, setActiveForm}: any) => {
                       onChange={(val) => {updateBarangTarifOpsional("BMI","kodeFasilitasTarif", val),
                         updateBarang("kodeDokumen", ListKategoriBarang.find(item => item.kodeKategoriBarang === val)?.kodeDokumen)
                       }}
-                      //error={!barang.barangTarif.filter((item: any) => item.kodeJenisPungutan === "BMI")[0]?.kodeFasilitasTarif ? "Kategori Barang wajib diisi" : ""}
                       list={ListFalsitasTarif} // ganti dengan list kode kategori yang valid
-                      readonly={false}
+                      readonly={readOnlyView}
                   />
                   <Card.Numeric
                       label="Tarif Fasilitas"
                       name="tarifFasilitas"
                       value={barang.barangTarif.filter((item: any) => item.kodeJenisPungutan === "BMI")[0]?.tarifFasilitas}
                       onChange={(val) => updateBarangTarifOpsional("BMI","tarifFasilitas", val)}
-                      readonly={false}
+                      readonly={readOnlyView}
                       labelUnit={{"1": "%", "2": "", null:""}[barang.barangTarif.filter((item: any) => item.kodeJenisPungutan === "BMI")[0]?.kodeJenisTarif || "1"]}
-                      error={barang.barangTarif.filter((item: any) => item.kodeJenisPungutan === "BMI")[0]?.tarifFasilitas < 0 ? "Tarif tidak boleh negatif" : ""}
                   />
                   </div>
                   </div>
@@ -925,9 +975,8 @@ export const ModalBarang = ({data, setData, header, setActiveForm}: any) => {
                           name="kodeJenisTarif"
                           value={barang.barangTarif.filter((item: any) => item.kodeJenisPungutan === "BMP")[0]?.kodeJenisTarif}
                           onChange={(val) => {updateBarangTarifOpsional("BMP","kodeJenisTarif", val)}}
-                          error={!barang.barangTarif.filter((item: any) => item.kodeJenisPungutan === "BMP")[0]?.kodeJenisTarif ? "Kategori Barang wajib diisi" : ""}
                           list={ListJenisTarif}
-                          readonly={false}
+                          readonly={readOnlyView}
                       />
                     </div>
                   {IsSpecificBMP && (
@@ -937,16 +986,15 @@ export const ModalBarang = ({data, setData, header, setActiveForm}: any) => {
                       name="JumlahSatuan"
                       value={barang.barangTarif.filter((item: any) => item.kodeJenisPungutan === "BMP")[0]?.jumlahSatuan}
                       onChange={(val) => updateBarangTarifOpsional("BMP","jumlahSatuan", val)} 
-                      readonly={false}
+                      readonly={readOnlyView}
                     />
                     <Card.Select
                       label="Satuan Barang"
                       name="SatuanBarang"
                       value={barang.barangTarif.filter((item: any) => item.kodeJenisPungutan === "BMP")[0]?.kodeSatuanBarang}
                       onChange={(val) => updateBarangTarifOpsional("BMP","kodeSatuanBarang", val)}
-                      error={!barang.barangTarif.filter((item: any) => item.kodeJenisPungutan === "BMP")[0]?.kodeSatuanBarang ? "Kode Satuan wajib diisi" : ""}
                       list={ListSatuanBarang.map((item) => ({ label: `${item.tableKey} - ${item.tableValue}`, value: item.tableKey }))} // ganti dengan list kode satuan yang valid
-                      readonly={false}
+                      readonly={readOnlyView}
                     />
                     </div>
                   )}
@@ -956,29 +1004,26 @@ export const ModalBarang = ({data, setData, header, setActiveForm}: any) => {
                       name="tarif"
                       value={barang.barangTarif.filter((item: any) => item.kodeJenisPungutan === "BMP")[0]?.tarif}
                       onChange={(val) => updateBarangTarifOpsional("BMP","tarif", val)}
-                      readonly={false}
+                      readonly={readOnlyView}
                       labelUnit={{"1": "%", "2": "", null:""}[barang.barangTarif.filter((item: any) => item.kodeJenisPungutan === "BMP")[0]?.kodeJenisTarif || "1"]}
-                      error={barang.barangTarif.filter((item: any) => item.kodeJenisPungutan === "BMP")[0]?.tarif < 0 ? "Tarif tidak boleh negatif" : ""}
                   />
-                   <Card.Select
+                  <Card.Select
                       label="Fasilitas Tarif"
                       name="kodeFasilitasTarif"
                       value={barang.barangTarif.filter((item: any) => item.kodeJenisPungutan === "BMP")[0]?.kodeFasilitasTarif}
                       onChange={(val) => {updateBarangTarifOpsional("BMP","kodeFasilitasTarif", val),
                         updateBarang("kodeDokumen", ListKategoriBarang.find(item => item.kodeKategoriBarang === val)?.kodeDokumen)
                       }}
-                      //error={!barang.barangTarif.filter((item: any) => item.kodeJenisPungutan === "BMP")[0]?.kodeFasilitasTarif ? "Kategori Barang wajib diisi" : ""}
                       list={ListFalsitasTarif} // ganti dengan list kode kategori yang valid
-                      readonly={false}
+                      readonly={readOnlyView}
                   />
                   <Card.Numeric
                       label="Tarif Fasilitas"
                       name="tarifFasilitas"
                       value={barang.barangTarif.filter((item: any) => item.kodeJenisPungutan === "BMP")[0]?.tarifFasilitas}
                       onChange={(val) => updateBarangTarifOpsional("BMP","tarifFasilitas", val)}
-                      readonly={false}
+                      readonly={readOnlyView}
                       labelUnit={{"1": "%", "2": "", null:""}[barang.barangTarif.filter((item: any) => item.kodeJenisPungutan === "BMP")[0]?.kodeJenisTarif || "1"]}
-                      error={barang.barangTarif.filter((item: any) => item.kodeJenisPungutan === "BMP")[0]?.tarifFasilitas < 0 ? "Tarif tidak boleh negatif" : ""}
                   />
                   </div>
                   </div>
@@ -1009,56 +1054,72 @@ export const ModalBarang = ({data, setData, header, setActiveForm}: any) => {
                 >
                   {checkedCukai && (
                   <div style={{display:"flex", flexDirection:"row", gap: 8}}>
-                  <Card.Select
-                      label=""
-                      name="kodeKategoriBarang"
-                      value={barang.kodeKategoriBarang}
-                      onChange={(val) => {updateBarang("kodeKategoriBarang", val),
-                        updateBarang("kodeDokumen", ListKategoriBarang.find(item => item.kodeKategoriBarang === val)?.kodeDokumen)
-                      }}
-                      error={!barang.kodeKategoriBarang ? "Kategori Barang wajib diisi" : ""}
-                      list={ListKategoriBarang.map(item => ({ value: item.kodeKategoriBarang, label: `${item.kodeKategoriBarang} - ${item.uraian}` }))} // ganti dengan list kode kategori yang valid
-                      readonly={false}
+                  <div className="label" style={{height:"inherit", paddingRight:"20px", }}>
+                    <div> Cukai</div>
+                    <div style={{display:"flex", flexDirection:"row", gap: 6}}><input type="checkbox" name="" id="" onChange={() => setCheckedCukai(!checkedCukai)}/><span>Sementara</span></div>
+                    
+                  </div>
+                  <div style={{display:"flex", flexDirection:"row", gap: 8, flexWrap:"wrap", }}>
+                    <div style={{display:"flex", flexDirection:"row", gap: 6, width:"100%"}}>
+                      <Card.Select
+                          label="Jenis Tarif"
+                          name="kodeJenisTarif"
+                          value={barang.barangTarif.filter((item: any) => item.kodeJenisPungutan === "Cukai")[0]?.kodeJenisTarif}
+                          onChange={(val) => {updateBarangTarifOpsional("Cukai","kodeJenisTarif", val)}}
+                          list={ListJenisTarif}
+                          readonly={readOnlyView}
+                      />
+                    </div>
+                  {IsSpecificCukai && (
+                    <div style={{display:"flex", flexDirection:"row", gap: 8, width:"100%"}}>
+                    <Card.Numeric
+                      label="Jumlah Satuan"
+                      name="JumlahSatuan"
+                      value={barang.barangTarif.filter((item: any) => item.kodeJenisPungutan === "Cukai")[0]?.jumlahSatuan}
+                      onChange={(val) => updateBarangTarifOpsional("Cukai","jumlahSatuan", val)} 
+                      readonly={readOnlyView}
+                    />
+                    <Card.Select
+                      label="Satuan Barang"
+                      name="SatuanBarang"
+                      value={barang.barangTarif.filter((item: any) => item.kodeJenisPungutan === "Cukai")[0]?.kodeSatuanBarang}
+                      onChange={(val) => updateBarangTarifOpsional("Cukai","kodeSatuanBarang", val)}
+                      list={ListSatuanBarang.map((item) => ({ label: `${item.tableKey} - ${item.tableValue}`, value: item.tableKey }))} // ganti dengan list kode satuan yang valid
+                      readonly={readOnlyView}
+                    />
+                    </div>
+                  )}
+                  <div style={{display:"flex", flexDirection:"row", gap: 6, width:"100%"}}>
+                  <Card.Numeric
+                      label="Tarif"
+                      name="tarif"
+                      value={barang.barangTarif.filter((item: any) => item.kodeJenisPungutan === "Cukai")[0]?.tarif}
+                      onChange={(val) => updateBarangTarifOpsional("Cukai","tarif", val)}
+                      readonly={readOnlyView}
+                      labelUnit={{"1": "%", "2": "", null:""}[barang.barangTarif.filter((item: any) => item.kodeJenisPungutan === "Cukai")[0]?.kodeJenisTarif || "1"]}
                   />
                   <Card.Select
-                      label=""
-                      name="kodeKategoriBarang"
-                      value={barang.kodeKategoriBarang}
-                      onChange={(val) => {updateBarang("kodeKategoriBarang", val),
+                      label="Fasilitas Tarif"
+                      name="kodeFasilitasTarif"
+                      value={barang.barangTarif.filter((item: any) => item.kodeJenisPungutan === "Cukai")[0]?.kodeFasilitasTarif}
+                      onChange={(val) => {updateBarangTarifOpsional("Cukai","kodeFasilitasTarif", val),
                         updateBarang("kodeDokumen", ListKategoriBarang.find(item => item.kodeKategoriBarang === val)?.kodeDokumen)
                       }}
-                      error={!barang.kodeKategoriBarang ? "Kategori Barang wajib diisi" : ""}
-                      list={ListKategoriBarang.map(item => ({ value: item.kodeKategoriBarang, label: `${item.kodeKategoriBarang} - ${item.uraian}` }))} // ganti dengan list kode kategori yang valid
-                      readonly={false}
+                      list={ListFalsitasTarif} // ganti dengan list kode kategori yang valid
+                      readonly={readOnlyView}
                   />
                   <Card.Numeric
-                      label=""
-                      name="ndpbm"
-                      value={barang.ndpbm}
-                      onChange={(val) => updateBarang("ndpbm", val)}
-                      readonly={false}
-                      error={barang.ndpbm < 0 ? "NDPBM tidak boleh negatif" : ""}
-                  />
-                   <Card.Select
-                      label=""
-                      name="kodeKategoriBarang"
-                      value={barang.kodeKategoriBarang}
-                      onChange={(val) => {updateBarang("kodeKategoriBarang", val),
-                        updateBarang("kodeDokumen", ListKategoriBarang.find(item => item.kodeKategoriBarang === val)?.kodeDokumen)
-                      }}
-                      error={!barang.kodeKategoriBarang ? "Kategori Barang wajib diisi" : ""}
-                      list={ListKategoriBarang.map(item => ({ value: item.kodeKategoriBarang, label: `${item.kodeKategoriBarang} - ${item.uraian}` }))} // ganti dengan list kode kategori yang valid
-                      readonly={false}
-                  />
-                  <Card.Numeric
-                      label=""
-                      name="ndpbm"
-                      value={barang.ndpbm}
-                      onChange={(val) => updateBarang("ndpbm", val)}
-                      readonly={false}
-                      error={barang.ndpbm < 0 ? "NDPBM tidak boleh negatif" : ""}
+                      label="Tarif Fasilitas"
+                      name="tarifFasilitas"
+                      value={barang.barangTarif.filter((item: any) => item.kodeJenisPungutan === "Cukai")[0]?.tarifFasilitas}
+                      onChange={(val) => updateBarangTarifOpsional("Cukai","tarifFasilitas", val)}
+                      readonly={readOnlyView}
+                      labelUnit={{"1": "%", "2": "", null:""}[barang.barangTarif.filter((item: any) => item.kodeJenisPungutan === "Cukai")[0]?.kodeJenisTarif || "1"]}
                   />
                   </div>
+                  </div>
+                  </div>
+                  
                 )}
                 </Card>
               </Card>
@@ -1076,7 +1137,7 @@ export const ModalBarang = ({data, setData, header, setActiveForm}: any) => {
                       name="tarif"
                       value={barang.barangTarif.filter((item: any) => item.kodeJenisPungutan === "PPN")[0]?.tarif}
                       onChange={(val) => {updateBarangTarifOpsional("PPN","tarif", val)}}
-                      readonly={false}
+                      readonly={readOnlyView}
                       labelUnit="%"
                   />
                    <Card.Select
@@ -1088,14 +1149,14 @@ export const ModalBarang = ({data, setData, header, setActiveForm}: any) => {
                       }}
                       //error={!barang.barangTarif.filter((item: any) => item.kodeJenisPungutan === "PPN")[0]?.kodeFasilitasTarif ? "Kategori Barang wajib diisi" : ""}
                       list={ListFalsitasTarif} // ganti dengan list kode kategori yang valid
-                      readonly={false}
+                      readonly={readOnlyView}
                   />
                   <Card.Numeric
                       label="Tarif Fasilitas"
                       name="tarifFasilitas"
                       value={barang.barangTarif.filter((item: any) => item.kodeJenisPungutan === "PPN")[0]?.tarifFasilitas}
                       onChange={(val) => updateBarangTarifOpsional("PPN", "tarifFasilitas", val)}
-                      readonly={false}
+                      readonly={readOnlyView}
                       labelUnit="%"
                   />
                   </div>
@@ -1110,7 +1171,7 @@ export const ModalBarang = ({data, setData, header, setActiveForm}: any) => {
                       name="tarif"
                       value={barang.barangTarif.filter((item: any) => item.kodeJenisPungutan === "PPNBM")[0]?.tarif}
                       onChange={(val) => {updateBarangTarifOpsional("PPNBM","tarif", val)}}
-                      readonly={false}
+                      readonly={readOnlyView}
                       labelUnit="%"
                   />
                    <Card.Select
@@ -1122,14 +1183,14 @@ export const ModalBarang = ({data, setData, header, setActiveForm}: any) => {
                       }}
                       //error={!barang.barangTarif.filter((item: any) => item.kodeJenisPungutan === "PPNBM")[0]?.kodeFasilitasTarif ? "Kategori Barang wajib diisi" : ""}
                       list={ListFalsitasTarif} // ganti dengan list kode kategori yang valid
-                      readonly={false}
+                      readonly={readOnlyView}
                   />
                   <Card.Numeric
                       label="Tarif Fasilitas"
                       name="tarifFasilitas"
                       value={barang.barangTarif.filter((item: any) => item.kodeJenisPungutan === "PPNBM")[0]?.tarifFasilitas}
                       onChange={(val) => updateBarangTarifOpsional("PPNBM", "tarifFasilitas", val)}
-                      readonly={false}
+                      readonly={readOnlyView}
                       labelUnit="%"
                   />
                   </div>
@@ -1144,7 +1205,7 @@ export const ModalBarang = ({data, setData, header, setActiveForm}: any) => {
                       name="tarif"
                       value={barang.barangTarif.filter((item: any) => item.kodeJenisPungutan === "PPH")[0]?.tarif}
                       onChange={(val) => {updateBarangTarifOpsional("PPH","tarif", val)}}
-                      readonly={false}
+                      readonly={readOnlyView}
                       labelUnit="%"
                   />
                    <Card.Select
@@ -1156,14 +1217,14 @@ export const ModalBarang = ({data, setData, header, setActiveForm}: any) => {
                       }}
                       //error={!barang.barangTarif.filter((item: any) => item.kodeJenisPungutan === "PPH")[0]?.kodeFasilitasTarif ? "Kategori Barang wajib diisi" : ""}
                       list={ListFalsitasTarif} // ganti dengan list kode kategori yang valid
-                      readonly={false}
+                      readonly={readOnlyView}
                   />
                   <Card.Numeric
                       label="Tarif Fasilitas"
                       name="tarifFasilitas"
                       value={barang.barangTarif.filter((item: any) => item.kodeJenisPungutan === "PPH")[0]?.tarifFasilitas}
                       onChange={(val) => updateBarangTarifOpsional("PPH", "tarifFasilitas", val)}
-                      readonly={false}
+                      readonly={readOnlyView}
                       labelUnit="%"
                   />
                   </div>

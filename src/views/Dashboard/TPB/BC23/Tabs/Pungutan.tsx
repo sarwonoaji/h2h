@@ -1,163 +1,306 @@
 import Card from "../../../../../components/Card";
-import { ListDokumen } from "../../../../../services/loader/ListDokumen";
-import { ListNegara } from "../../../../../services/loader/ListNegara";
-import moment from "moment";
-import { useEffect, useState } from "react";
-import ModalManifest from "../Modals/ModalManifest";
+import { ListFalsitasTarif } from "../../../../../services/loader/ListFasilitasTarif";
+import { useState, useEffect } from "react";
 import { Button } from "react-bootstrap";
 import CustomTable from "../../../../../components/TableList";
-import { FaCircle } from "react-icons/fa";
-import { FaCircleExclamation, FaCirclePlus } from "react-icons/fa6";
+import { FaCirclePlus } from "react-icons/fa6";
 
-const PungutanBC23Page = ({ data = [], setData, setIsComplete }: any) => {
-const initForm = {
-        seriDokumen: "",
-        jenisDokumen: "",
-        nomorDokumen: "",
-        tanggalDokumen: "",
-    };
-    const [headState, setHeadState] = useState(() => ({
-        kodeKantor: "",
-        namaImportir: "",
-        noHostBl: "",
-        tglHostBl: "",
-    }));
-    const [showModal, setShowModal] = useState(false);
-    const [editingIndex, setEditingIndex] = useState<number | null>(null);
-    const [form, setForm] = useState({ ...initForm });
-    const generateSeri = () => {
-        if (data.length === 0) return "1";
-        const maxSeri = Math.max(...data.map((item: any) => parseInt(item.seriDokumen)));
-        return (maxSeri + 1).toString();
-    };
-    const [showForm, setShowForm] = useState(false);
-    const handleInputChange = (field: string, value: any) => {
-        setForm((prev: any) => ({
-            ...prev,
-            [field]: value,
-        }));
-    };
-    const handleSimpan = () => {
-        if (!form.jenisDokumen || !form.nomorDokumen || !form.tanggalDokumen) {
-            alert("Lengkapi data terlebih dahulu");
-            return;
-        }
-        if (editingIndex !== null) {
-            // MODE EDIT
-            setData((prev: any) => {
-            const updated = [...(prev.dokumen || [])];
-            updated[editingIndex] = {
-                ...updated[editingIndex],
-                ...form,
-            };
-            if(updated[editingIndex].jenisDokumen === "705" || updated[editingIndex].jenisDokumen === "740") {
-                setShowModal(true);
-                setHeadState((prev) => ({
-                    ...prev,
-                    noHostBl: form.nomorDokumen,
-                    tglHostBl: form.tanggalDokumen,
-                }));
-            }
+const PungutanBC23Page = ({ data, setData, dataPungutan, setIsComplete, readOnlyView }: any) => {
+  const [columns, setColumns] = useState<any[]>([]);
+  const [tableData, setTableData] = useState<any[]>([]);
 
-            return {
-                ...prev,
-                dokumen: updated,
-            };
-            });
+  // ===============================
+  // HELPER LABEL FASILITAS
+  // ===============================
+  const getFasilitasLabel = (kode: string) => {
+    return (
+      ListFalsitasTarif.find((x) => x.value === kode)?.label.split(" - ")[1] ||
+      kode
+    );
+  };
 
-            setEditingIndex(null);
-        } else {
-            const newData = {
-            ...form,
-            seriDokumen: generateSeri(),
-            };
-            if(newData.jenisDokumen === "705" || newData.jenisDokumen === "740") {
-                setShowModal(true);
-                setHeadState((prev) => ({
-                    ...prev,
-                    noHostBl: form.nomorDokumen,
-                    tglHostBl: form.tanggalDokumen,
-                }));
-            }
+  // ===============================
+  // FORMAT RUPIAH
+  // ===============================
+  const formatRupiah = (value: number) => {
+  const rounded = Math.ceil((value || 0) / 1000) * 1000;
 
-            setData((prev: any) => ({
-                ...prev,
-                dokumen: [...(prev.dokumen || []), newData],
-        }))};
-
-        setForm({ ...initForm });
-        setShowForm(false);
-    };
-
-    const getNamaDokumen = (kode: string) => {
-        const dokumen = ListDokumen.find((item) => item.key === kode);
-        return dokumen ? `${dokumen.key} - ${dokumen.value}` : "";
-    };
-
-    const handleEdit = (row: any, index: number) => {
-        setForm({
-            seriDokumen: row.seriDokumen,
-            jenisDokumen: row.jenisDokumen,
-            nomorDokumen: row.nomorDokumen,
-            tanggalDokumen: row.tanggalDokumen,
-        });
-
-        setEditingIndex(index);
-        setShowForm(true);
-    };
-
-const handleDelete = (index: number) => {
-  if (!window.confirm("Yakin ingin menghapus dokumen ini?")) return;
-
-  setData((prev: any) => {
-    const updated = [...(prev.dokumen || [])];
-    updated.splice(index, 1);
-        const reIndexed = updated.map((item, i) => ({
-        ...item,
-        seriDokumen: (i + 1).toString(),
-        }));
-    return {
-      ...prev,
-      dokumen: reIndexed,
-    };
-  });
+  return new Intl.NumberFormat("id-ID", {
+    style: "currency",
+    currency: "IDR",
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  }).format(rounded);
 };
 
+  // ===============================
+  // CONVERT PUNGUTAN → MATRIX
+  // ===============================
+  const convertPungutanToMatrix = (list: any[]) => {
+    const result: any = {};
+    const fasilitasSet = new Set<string>();
+
+    list.forEach((item) => {
+      const jenis = item.kodeJenisPungutan;
+      const fasilitas = item.kodeFasilitasTarif;
+
+      fasilitasSet.add(fasilitas);
+
+      if (!result[jenis]) result[jenis] = {};
+      if (!result[jenis][fasilitas]) result[jenis][fasilitas] = 0;
+
+      result[jenis][fasilitas] += item.nilaiPungutan;
+    });
+
+    return {
+      data: result,
+      fasilitasList: Array.from(fasilitasSet),
+    };
+  };
+
+  // ===============================
+  // HITUNG BM
+  // ===============================
+  const getBMValue = (barang: any) => {
+    let totalBM = 0;
+
+    (barang.barangTarif || []).forEach((tarif: any) => {
+      if (tarif.kodeJenisPungutan !== "BM") return;
+
+      const rate = tarif.tarif ?? 0;
+      if (tarif.kodeJenisTarif === "2") {
+        totalBM += rate * (barang.jumlahSatuan || 0);
+      } else {
+        totalBM += (barang.cifRupiah || 0) * rate / 100;
+      }
+    });
+    return totalBM;
+  };
+
+  // ===============================
+  // HITUNG NILAI NORMAL
+  // ===============================
+  const getNilaiNormal = (barang: any, tarif: any, bmValue: number) => {
+    const rate = tarif.tarif ?? 0;
+
+    let baseValue = 0;
+
+    switch (tarif.kodeJenisPungutan) {
+      case "PPN":
+      case "PPH":
+        baseValue = (barang.cifRupiah || 0) + bmValue;
+        break;
+      default:
+        baseValue = barang.cifRupiah || 0;
+        break;
+    }
+
+    if (tarif.kodeJenisTarif === "2") {
+      return rate * (barang.jumlahSatuan || 0);
+    } else {
+      return (baseValue * rate) / 100;
+    }
+  };
+
+  // ===============================
+  // HITUNG PUNGUTAN
+  // ===============================
+  const calculatePungutan = (listBarang: any[]) => {
+    const result: any = {};
+    const fasilitasSet = new Set<string>();
+    listBarang.forEach((barang) => {
+      const bmValue = getBMValue(barang);
+      (barang.barangTarif || []).forEach((tarif: any) => {
+        const jenis = tarif.kodeJenisPungutan || "-";
+        const fasilitas = tarif.kodeFasilitasTarif || "0";
+
+        fasilitasSet.add(fasilitas);
+
+        const nilaiNormal = getNilaiNormal(barang, tarif, bmValue);
+        const fasilitasPersen = tarif.tarifFasilitas ?? 0;
+        const nilaiFasilitas = (nilaiNormal * fasilitasPersen) / 100;
+
+        if (!result[jenis]) result[jenis] = {};
+        if (!result[jenis][fasilitas]) result[jenis][fasilitas] = 0;
+
+        result[jenis][fasilitas] += nilaiFasilitas;
+      });
+    });
+
+    return {
+      data: result,
+      fasilitasList: Array.from(fasilitasSet),
+    };
+  };
+
+  // ===============================
+  // GENERATE TABLE
+  // ===============================
+  const generateTable = (calcResult: any) => {
+    const { data, fasilitasList } = calcResult;
+
+    const fasilitasSorted = ListFalsitasTarif
+      .map((x) => x.value)
+      .filter((v) => fasilitasList.includes(v));
+
+    const cols = [
+      {
+        header: "Pungutan",
+        accessor: "pungutan",
+        tdStyle: { minWidth: 120 },
+        render: (row: any) => (
+          <span style={{ fontWeight: row.isTotal ? 700 : 400 }}>
+            {row.pungutan}
+          </span>
+        ),
+      },
+      ...fasilitasSorted.map((f: string) => ({
+        header: getFasilitasLabel(f),
+        accessor: f,
+        tdStyle: { minWidth: 140 },
+        render: (row: any) => (
+          <span style={{ fontWeight: row.isTotal ? 700 : 400 }}>
+            {formatRupiah(row[f] || 0)}
+          </span>
+        ),
+        footer: (data: any[]) => {
+          const total = data.reduce((sum, row) => {
+            const value = formatRupiah(row[f] || 0).split("Rp")[1].replace(/\./g, "").replace(",", ".").trim();
+            return sum + parseFloat(value);
+          }, 0);
+
+          return formatRupiah(total || 0);
+        },
+      })),
+    ];
+
+    const rows: any[] = [];
+    // const grandTotal: any = {};
+
+    // fasilitasSorted.forEach((f) => (grandTotal[f] = 0));
+
+    Object.keys(data).forEach((jenis, index) => {
+      const row: any = {
+        id: index + 1,
+        pungutan: jenis,
+      };
+
+      fasilitasSorted.forEach((f: string) => {
+        const val = data[jenis][f] || 0;
+        row[f] = val;
+        // grandTotal[f] += val;
+      });
+
+      rows.push(row);
+    });
+
+    // const totalRow: any = {
+    //   pungutan: "TOTAL",
+    //   isTotal: true,
+    // };
+
+    // fasilitasSorted.forEach((f: string) => {
+    //   totalRow[f] = grandTotal[f] || 0;
+    // });
+
+   // rows.push(totalRow);
+
+    return { columns: cols, tableData: rows };
+  };
+
+  // ===============================
+  // LOAD DATA PUNGUTAN (TANPA HITUNG)
+  // ===============================
+  useEffect(() => {
+    if (dataPungutan && dataPungutan.length > 0) {
+      const matrix = convertPungutanToMatrix(dataPungutan);
+      const { columns, tableData } = generateTable(matrix);
+
+      setColumns(columns);
+      setTableData(tableData);
+
+      setIsComplete?.(true);
+    }
+  }, [dataPungutan]);
+
+  // ===============================
+  // HANDLE HITUNG
+  // ===============================
+  const handleHitung = () => {
+    const calc = calculatePungutan(data || []);
+    const { columns, tableData } = generateTable(calc);
+
+    setColumns(columns);
+    setTableData(tableData);
+    const pungutanList: any[] = [];
+    let id = 1;
+
+    Object.keys(calc.data).forEach((jenis) => {
+      Object.keys(calc.data[jenis]).forEach((fasilitas) => {
+        const nilai = calc.data[jenis][fasilitas];
+        if (nilai === undefined || nilai === null) return;
+
+        pungutanList.push({
+          idPungutan: id.toString(),
+          kodeJenisPungutan: jenis,
+          kodeFasilitasTarif: fasilitas,
+          nilaiPungutan: nilai,
+        });
+
+        id++;
+      });
+    });
+
+    setData((prev: any) => ({
+      ...prev,
+      pungutan: pungutanList,
+    }));
+    setIsComplete?.(true);
+  };
+  console.log("Data pungutan yang dihitung:", tableData);
+
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: 8, justifyContent: "center" }}>
+    <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
       <Card
-          title="Dokumen Lampiran"
-          headerStyle={{ backgroundColor: "#f5f5f5"}}
-          headerCustom={(
-            <Button size="sm" variant="primary" style={{ display: "flex", alignItems:"center", justifyContent:"center", gap: 4 , borderRadius: 0, fontSize: 12 }} onClick={() => setShowForm(true)}>
-                <FaCirclePlus/><span style={{paddingTop:1}}>Hitung & Muat Ulang</span>                
-            </Button>
-          )}
-        >
+        title="Pungutan"
+        headerStyle={{ backgroundColor: "#f5f5f5" }}
+        headerCustom={
+          !readOnlyView && (
+            <Button
+              size="sm"
+              variant="primary"
+              style={{
+                display: "flex",
+                alignItems: "center",
+              gap: 4,
+              borderRadius: 0,
+              fontSize: 12,
+            }}
+            onClick={handleHitung}
+          >
+            <FaCirclePlus />
+            <span style={{ paddingTop: 1 }}>
+              Hitung & Muat Ulang
+            </span>
+          </Button>
+        )}
+      >
         <CustomTable
-            title=""
-            containerStyle={{ background: "#f9fafc", padding: 0}}
-            headerStyle={{marginBottom:0}}
-            actionContainerStyle={{ gap: 15 }}
-            tableStyle={{ fontSize: 12, marginBottom: 0 }}
-            columns={[
-                { header:"", accessor:"id"},
-                { header: "Pungutan", accessor: "seriDokumen",tdStyle: { minWidth: 100}},
-                { header: "Tidak Dipungut", accessor: "jenisDokumen", tdStyle: { minWidth: 100}},
-                { header: "Dibebankan", accessor: "nomorDokumen", tdStyle: { minWidth: 100}, },
-                { header: "Ditangguhkan", accessor: "fasilitasDokumen" ,tdStyle: { minWidth: 100} },
-                
-            ]}
-            data={data}   
-            striped={false}
-            bordered={false}
-            hover={true}
-            responsive={true}
-            className="custom-table"
+          title=""
+          containerStyle={{ background: "#f9fafc", padding: 0 }}
+          headerStyle={{ marginBottom: 0 }}
+          tableStyle={{ fontSize: 12, marginBottom: 0 }}
+          columns={columns}
+          data={tableData}
+          striped={false}
+          bordered={false}
+          hover={true}
+          responsive={true}
+          className="custom-table"
         />
-        </Card>
+      </Card>
     </div>
   );
-}
+};
 
 export default PungutanBC23Page;

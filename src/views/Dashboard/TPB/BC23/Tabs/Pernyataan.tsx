@@ -2,7 +2,7 @@ import Card from "../../../../../components/Card";
 import moment from "moment";
 import { useEffect } from "react";
 
-const PernyataanBC23Page = ({ data = [], setData, setIsComplete }: any) => {
+const PernyataanBC23Page = ({ data = [], setData, setIsComplete, readOnlyView }: any) => {
     useEffect(() => {
         const isComplete = !!(
             data.kotaTtd &&

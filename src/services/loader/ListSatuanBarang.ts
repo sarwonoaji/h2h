@@ -1170,6 +1170,7 @@ export const ListSatuanBarang = [
             { "tableKey": "MQH", "tableValue": "cubic metre per hour" },
             { "tableKey": "MQS", "tableValue": "cubic metre per second" },
             { "tableKey": "MT", "tableValue": "mat" },
+            { "tableKey": "MTR", "tableValue": "Metre" },
             { "tableKey": "MTK", "tableValue": "Square metre" },
             { "tableKey": "MUR", "tableValue": "Mauritius Rupee" },
             { "tableKey": "MWK", "tableValue": "Malawi Kwacha" },

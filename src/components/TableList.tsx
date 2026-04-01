@@ -6,6 +6,7 @@ interface TableColumn<T> {
   header: string;
   accessor: keyof T;
   render?: (row: T, index: number) => React.ReactNode;
+  footer?: (data: T[]) => React.ReactNode;
   thStyle?: React.CSSProperties;
   tdStyle?: React.CSSProperties;
 }
@@ -43,7 +44,7 @@ function CustomTable<T extends { id?: string | number }>({
   columns,
   data,
   headerActions = [],
-
+  
   containerStyle,
   headerStyle,
   titleStyle,
@@ -66,6 +67,7 @@ function CustomTable<T extends { id?: string | number }>({
         background: "#fff",
         padding: 20,
         border: "1px solid #eee",
+        // height: "100vh",
         ...containerStyle,
       }}
     >
@@ -157,6 +159,23 @@ function CustomTable<T extends { id?: string | number }>({
             </tr>
           )}
         </tbody>
+        <tfoot>
+          <tr>
+            {columns.map((col, index) => (
+              <td
+                key={index}
+                style={{
+                  fontWeight: "bold",
+                  background: "#f9f9f9",
+                  padding: "12px 8px",
+                  ...col.tdStyle,
+                }}
+              >
+                {col.footer ? col.footer(data) : ""}
+              </td>
+            ))}
+          </tr>
+        </tfoot>
       </Table>
     </div>
   );

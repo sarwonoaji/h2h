@@ -6,62 +6,91 @@ import { ListCaraAngkut } from "../../../../../services/loader/ListCaraAngkut";
 import { ListPelabuhan } from "../../../../../services/loader/ListPelabuhan";
 import ListJenisTPS from "../../../../../services/loader/ListJenisTPS";
 
-const PengangkutBC23Page = ({ data = [], setData, headers, setIsComplete }: any) => {
-    
+type Pengangkut = {
+  kodeBendera: string | null;
+  namaPengangkut: string | null;
+  nomorPengangkut: string | null;
+  kodeCaraAngkut: "1" | "2" | "3" | "4" | "5" | "6" | "7" | "8" | "9" | null;
+  seriPengangkut: number;
+};
+
+type Props = {
+    data: Pengangkut[];
+    setData: (fn: (prev: any) => any) => void;
+    headers: Record<string, any>;
+    setIsComplete: (val: boolean) => void;
+    readOnlyView: boolean;
+};
+
+const PengangkutBC23Page = ({ data = [], setData, headers, setIsComplete, readOnlyView }: Props) => {
+    // Update pengangkut dengan validasi data
     const updatePengangkut = (field: string, value: any) => {
-        setData((prev: any) => ({
-          ...prev,
-            pengangkut: {
-                ...prev.pengangkut,
-                [field]: value,
+        setData((prev: any) => {
+            if (!Array.isArray(prev.pengangkut) || prev.pengangkut.length === 0) {
+                return {
+                    ...prev,
+                    pengangkut: [{ [field]: value }],
+                };
             }
-        }));
-      }
-    useEffect(() => {
-        if(headers.kodePelBongkar == null || headers.kodePelBongkar === "") {
-            setData((prev: any) => ({
+            return {
                 ...prev,
-                kodeTps: "",
-            }));
+                pengangkut: prev.pengangkut.map((item: any, index: number) =>
+                    index === 0 ? { ...item, [field]: value } : item
+                ),
+            };
+        });
+    };
+
+    useEffect(() => {
+        if (headers.kodePelBongkar == null || headers.kodePelBongkar === "") {
+            setData((prev: any) => {
+                if (prev.kodeTps === "") return prev;
+                return {
+                    ...prev,
+                    kodeTps: "",
+                };
+            });
         }
-  const isBc11Complete =
-    headers?.nomorBc11 &&
-    headers?.tanggalBc11 &&
-    headers?.posBc11 &&
-    headers?.subposBc11;
 
-  const isPengangkutanComplete =
-    data?.kodeCaraAngkut &&
-    data?.namaPengangkut &&
-    data?.nomorPengangkut &&
-    data?.kodeBendera;
+        const pengangkut = Array.isArray(data) && data.length > 0 ? data[0] : null;
 
-  const isPelabuhanComplete =
-    headers?.kodePelMuat &&
-    headers?.kodePelTransit &&
-    headers?.kodePelBongkar &&
-    headers?.kodeTps;
+        const isBc11Complete =
+            !!headers?.nomorBc11 &&
+            !!headers?.tanggalBc11 &&
+            !!headers?.posBc11 &&
+            !!headers?.subposBc11;
 
-  const isAllComplete =
-    isBc11Complete &&
-    isPengangkutanComplete &&
-    isPelabuhanComplete;
+        const isPengangkutanComplete =
+            !!pengangkut?.kodeCaraAngkut &&
+            !!pengangkut?.namaPengangkut &&
+            !!pengangkut?.nomorPengangkut &&
+            !!pengangkut?.kodeBendera;
 
-  setIsComplete(!!isAllComplete);
-}, [
-  headers?.nomorBc11,
-  headers?.tanggalBc11,
-  headers?.posBc11,
-  headers?.subposBc11,
-  headers?.kodePelMuat,
-  headers?.kodePelTransit,
-  headers?.kodePelBongkar,
-  headers?.kodeTps,
-  data?.kodeCaraAngkut,
-  data?.namaPengangkut,
-  data?.nomorPengangkut,
-  data?.kodeBendera,
-]);
+        const isPelabuhanComplete =
+            !!headers?.kodePelMuat &&
+            !!headers?.kodePelTransit &&
+            !!headers?.kodePelBongkar &&
+            !!headers?.kodeTps;
+
+        const isAllComplete =
+            isBc11Complete &&
+            isPengangkutanComplete &&
+            isPelabuhanComplete;
+
+        setIsComplete(!!isAllComplete);
+    }, [
+        headers?.nomorBc11,
+        headers?.tanggalBc11,
+        headers?.posBc11,
+        headers?.subposBc11,
+        headers?.kodePelMuat,
+        headers?.kodePelTransit,
+        headers?.kodePelBongkar,
+        headers?.kodeTps,
+        data,
+        setIsComplete,
+        setData,
+    ]);
   return (
     <div style={{ display: "flex", flexDirection: "row", gap: 8, justifyContent: "center" }}>
       <Card
@@ -73,22 +102,22 @@ const PengangkutBC23Page = ({ data = [], setData, headers, setIsComplete }: any)
                 label="Nomor BC 1.1"
                 name="nomorBc11"
                 value={headers?.nomorBc11 || ""}
-                onChange={(val) => setData({ ...headers, nomorBc11: val })}
+                onChange={(val) => setData((prev: any) => ({ ...prev, nomorBc11: val }))}
                 error={!headers?.nomorBc11 ? "Nomor BC 1.1 wajib diisi" : ""}
                 onlyNumber={true}
                 maxLength={6}
-                readonly={false}
+                readonly={readOnlyView}
             />
             <Card.DatePicker
                 label={"\u00A0"}
                 name="tanggalBc11"
                 value={headers?.tanggalBc11}
                 onChange={(val) => { val ?
-                setData({ ...headers, tanggalBc11: moment(val).format("YYYY-MM-DD") })
-                : setData({ ...headers, tanggalBc11: null });
+                setData((prev: any) => ({ ...prev, tanggalBc11: moment(val).format("DD-MM-YYYY") }))
+                : setData((prev: any) => ({ ...prev, tanggalBc11: null }));
                 }}
                 error={!headers?.tanggalBc11 ? "Tanggal BC 1.1 wajib diisi" : ""}
-                readonly={false}
+                readonly={readOnlyView}
             />
         </div>
         <div style={{ display: "flex", flexDirection: "row", gap: 8, marginTop: 8, }}> 
@@ -96,9 +125,9 @@ const PengangkutBC23Page = ({ data = [], setData, headers, setIsComplete }: any)
                 label="Nomor Pos"
                 name="posBc11"
                 value={headers?.posBc11 || ""}
-                onChange={(val) => setData({ ...headers, posBc11: val })}
+                onChange={(val) => setData((prev: any) => ({ ...prev, posBc11: val }))}
                 error={!headers?.posBc11 ? "Nomor Pos wajib diisi" : ""}
-                readonly={false}
+                readonly={readOnlyView}
                 onlyNumber={true}
                 maxLength={4}
             />
@@ -106,9 +135,9 @@ const PengangkutBC23Page = ({ data = [], setData, headers, setIsComplete }: any)
                 label={"\u00A0"}
                 name="subposBc11"
                 value={headers?.subposBc11 || ""}
-                onChange={(val) => setData({ ...headers, subposBc11: val })}
+                onChange={(val) => setData((prev: any) => ({ ...prev, subposBc11: val }))}
                 error={!headers?.subposBc11 ? "Nomor Subpos wajib diisi" : ""}
-                readonly={false}
+                readonly={readOnlyView}
                 onlyNumber={true}
                 maxLength={8}
             />
@@ -119,34 +148,36 @@ const PengangkutBC23Page = ({ data = [], setData, headers, setIsComplete }: any)
         <Card.Select
             label="Cara Pengangkutan"
             name="kodeCaraAngkut"
-            value={data.kodeCaraAngkut || ""}
+            value={data[0]?.kodeCaraAngkut || ""}
             list={ListCaraAngkut.map(item => ({ label: `${item.value} - ${item.label}`, value: item.value }))}
             onChange={(val) => updatePengangkut("kodeCaraAngkut", val)}
-            error={!data.kodeCaraAngkut ? "Cara Pengangkutan wajib dipilih" : ""}
+            error={!data[0]?.kodeCaraAngkut ? "Cara Pengangkutan wajib dipilih" : ""}
+            readonly={readOnlyView}
         />
         <Card.Input
                 label="Nama Sarana Angkut"
                 name="namaPengangkut"
-                value={data?.namaPengangkut || ""}
+                value={data[0]?.namaPengangkut || ""}
                 onChange={(val) => updatePengangkut("namaPengangkut", val)}
-                error={!data?.namaPengangkut ? "Nama Sarana Angkut wajib diisi" : ""}
-                readonly={false}
+                error={!data[0]?.namaPengangkut ? "Nama Sarana Angkut wajib diisi" : ""}
+                readonly={readOnlyView}
             />
             <Card.Input
                 label="Nomor Voy/Flight"
                 name="nomorPengangkut"
-                value={data?.nomorPengangkut || ""}
+                value={data[0]?.nomorPengangkut || ""}
                 onChange={(val) => updatePengangkut("nomorPengangkut", val)}
-                error={!data?.nomorPengangkut ? "Nomor Voy/Flight wajib diisi" : ""}
-                readonly={false}
+                error={!data[0]?.nomorPengangkut ? "Nomor Voy/Flight wajib diisi" : ""}
+                readonly={readOnlyView}
             />
         <Card.Select
             label="Negara"
             name="kodeBendera"
-            value={data.kodeBendera || ""}
+            value={data[0]?.kodeBendera || ""}
             list={ListNegara.map(item => ({ label: `${item.value} - ${item.label}`, value: item.value }))}
             onChange={(val) => updatePengangkut("kodeBendera", val)}
-            error={!data.kodeBendera ? "Negara wajib diisi" : ""}
+            error={!data[0]?.kodeBendera ? "Negara wajib diisi" : ""}
+            readonly={readOnlyView}
         />
         </Card>
         <Card
@@ -158,23 +189,26 @@ const PengangkutBC23Page = ({ data = [], setData, headers, setIsComplete }: any)
             name="kodePelMuat"
             value={headers?.kodePelMuat || ""}
             list={ListPelabuhan.map(item => ({ label: item.label, value: item.value }))}
-            onChange={(val) => setData({ ...headers, kodePelMuat: val })}
+            onChange={(val) => setData((prev: any) => ({ ...prev, kodePelMuat: val }))}
             error={!headers?.kodePelMuat ? "Pelabuhan Muat wajib diisi" : ""}
+            readonly={readOnlyView}
         />
         <Card.Select
             label="Pelabuhan Transit"
             name="kodePelTransit"
             value={headers?.kodePelTransit || ""}
             list={ListPelabuhan.map(item => ({ label: item.label, value: item.value }))}
-            onChange={(val) => setData({ ...headers, kodePelTransit: val })}
+            onChange={(val) => setData((prev: any) => ({ ...prev, kodePelTransit: val }))}
             error={!headers?.kodePelTransit ? "Pelabuhan Transit wajib diisi" : ""}
+            readonly={readOnlyView}
+
         />
         <Card.Select
             label="Pelabuhan Tujuan"
             name="kodePelTujuan"
             value={headers?.kodePelBongkar || ""}
             list={ListPelabuhan.map(item => ({ label: item.label, value: item.value }))}
-            onChange={(val) => setData({ ...headers, kodePelBongkar: val })}
+            onChange={(val) => setData((prev: any) => ({ ...prev, kodePelBongkar: val }))}
             error={!headers?.kodePelBongkar ? "Pelabuhan Tujuan wajib diisi" : ""}
             readonly={true}
         />
@@ -183,9 +217,9 @@ const PengangkutBC23Page = ({ data = [], setData, headers, setIsComplete }: any)
                 name="kodeTps"
                 value={headers?.kodeTps || ""}
                 list={ListJenisTPS[headers?.kodePelBongkar ?? ""] ?? []}
-                onChange={(val) => setData({ ...headers, kodeTps: val })}
+                onChange={(val) => setData((prev: any) => ({ ...prev, kodeTps: val }))}
                 error={!headers?.kodeTps ? "Tempat Penimbunan wajib diisi" : ""}
-                readonly={false}
+                readonly={readOnlyView}
             />
         </Card>
     </div>

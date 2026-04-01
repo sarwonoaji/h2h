@@ -4,7 +4,7 @@ import { ListPelabuhan } from "../../../../../services/loader/ListPelabuhan";
 import { ListTujuanTPB } from "../../../../../services/loader/ListTujuanTPB";
 import { ListKantor } from "../../../../../services/loader/ListKantor";
 
-const HeaderPageBC23 = ({ data, setData, setIsComplete }: any) => {
+const HeaderPageBC23 = ({ data, setData, setIsComplete, readOnlyView }: any) => {
   console.log("HeaderPageBC23 received data:", data);
   useEffect(() => {
   const hasHeader = !!(
@@ -65,6 +65,7 @@ const HeaderPageBC23 = ({ data, setData, setIsComplete }: any) => {
               setData({ ...data, kodePelBongkar: val });
             }}
             error={!data.kodePelBongkar ? "Pelabuhan wajib dipilih" : ""}
+            readonly={readOnlyView}
           />
           <Card.Select
             label="Kantor Pabean Bongkar"
@@ -73,8 +74,8 @@ const HeaderPageBC23 = ({ data, setData, setIsComplete }: any) => {
             onChange={(val) => {
               setData({ ...data, kodeKantorBongkar: val });
             }}
-            list={ListKantor.map(item => ({ label: `${item.key} - ${item.name}`, value: item.key }))}
-            readonly={false}
+            list={ListKantor.map(item => ({ label: `${item.tableKey} - ${item.tableValue}`, value: item.tableKey }))}
+            readonly={readOnlyView}
             error={!data.kodeKantorBongkar ? "Kantor wajib dipilih" : ""}
           />
           <Card.Select
@@ -84,8 +85,8 @@ const HeaderPageBC23 = ({ data, setData, setIsComplete }: any) => {
             onChange={(val) => {
               setData({ ...data, kodeKantor: val });
             }}
-            readonly={false}
-            list={ListKantor.map(item => ({ label: `${item.key} - ${item.name}`, value: item.key }))}
+            readonly={readOnlyView}
+            list={ListKantor.map(item => ({ label: `${item.tableKey} - ${item.tableValue}`, value: item.tableKey }))}
             error={!data.kodeKantor ? "Kantor wajib dipilih" : ""}
           />
         </Card>
@@ -102,6 +103,7 @@ const HeaderPageBC23 = ({ data, setData, setIsComplete }: any) => {
             }}
             list={ListTujuanTPB.map(item => ({ label: `${item.value} - ${item.label}`, value: item.value }))}
             error={!data.kodeTujuanTpb ? "Tujuan wajib dipilih" : ""}
+            readonly={readOnlyView}
           />
         </Card>
     </div>

@@ -13,6 +13,8 @@ import BC262 from "./views/Dashboard/TPB/BC262View";
 import BC27Out from "./views/Dashboard/TPB/BC27OutView";
 import BC23CreateView from "./views/Dashboard/TPB/BC23/Actions/Create";
 import BC23ListView from "./views/Dashboard/TPB/BC23/Actions/List";
+import BC23EditView from "./views/Dashboard/TPB/BC23/Actions/Edit";
+import BC23View from "./views/Dashboard/TPB/BC23/Actions/View";
 
 const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   const { isAuthenticated, isLoading } = useAuth();
@@ -39,6 +41,8 @@ const AppRoutes = () => (
         {/* BC 23 */}
         <Route path="tpb/bc23" element={<BC23ListView />} />
         <Route path="tpb/bc23/create" element={<BC23CreateView />} />
+        <Route path="tpb/bc23/edit" element={<BC23EditView />} />
+        <Route path="tpb/bc23/view" element={<BC23View />} />
 
 
         <Route path="tpb/bc25" element={<BC25 />} />

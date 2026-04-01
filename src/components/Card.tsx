@@ -51,6 +51,7 @@ interface NumericProps extends BaseFieldProps {
   labelUnit?: React.ReactNode;
   value?: string | number | null;
   typeChanges?: "number" | "string";
+  step?: number;
   onChange?: (value: number | string | null) => void;
 }
 
@@ -363,6 +364,7 @@ const CardNumeric: React.FC<NumericProps> = ({
   showError = true,
   typeChanges = "number",
   labelUnit="",
+  step,
 }) => {
   const isError = !!error;
   const normalizedValue =
@@ -381,6 +383,7 @@ const CardNumeric: React.FC<NumericProps> = ({
         name={name}
         value={normalizedValue}
         readOnly={readonly}
+        step={step}
         onChange={(e) => {
           const raw = e.target.value;
 

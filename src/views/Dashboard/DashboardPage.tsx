@@ -39,6 +39,11 @@ const menuItems = [
         icon: icons.folder,
         path: "/dashboard/tpb/bc23"
       },
+      { key: "bc40",
+        label: "BC 40",
+        icon: icons.folder,
+        path: "/dashboard/tpb/bc40"
+      },
       {
         key: "bc25",
         label: "BC 25",

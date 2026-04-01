@@ -5,37 +5,37 @@ import { ListValuta } from "../../../../../services/loader/ListValuta";
 import { ceisaService } from "../../../../../services/support/Ceisa/AccessCeisa";
 import { ListAsuransi } from "../../../../../services/loader/ListAsuransi";
 import { ListKenaPajak } from "../../../../../services/loader/ListKenaPajak";
+import { Button } from "react-bootstrap";
 
 
-const TransaksiBC23Page = ({ data = [], setData, setIsComplete }: any) => {
+const TransaksiBC23Page = ({ data = [], setData, setIsComplete, readOnlyView }: any) => {
     const [isFreightValid, setIsFreightValid] = useState(true);
     const [isAsuransiValid, setIsAsuransiValid] = useState(true);
     useEffect(() => {
         if (data.kodeIncoterm === "FOB") {
-        const nilaiCif = data.hargaPenyerahan + data.freight;
-        const fobValue = data.hargaPenyerahan;
+        const nilaiCif = data.nilaiBarang + data.freight;
+        const fobValue = data.nilaiBarang;
         setIsFreightValid(false);
         setData((value: any) => ({ ...value, cif: nilaiCif, fob: fobValue }));
         } else {
         setIsFreightValid(true);
         setData((value: any) => ({
             ...value,
-            cif: data.hargaPenyerahan,
+            cif: data.nilaiBarang,
             fob: 0,
             freight: 0,
         }));
         }
-    }, [data.kodeIncoterm, data.hargaPenyerahan, data.freight]);
+    }, [data.kodeIncoterm, data.nilaiBarang, data.freight]);
 
+    const [nilaiPabean, setNilaiPabean] = useState(0);
     useEffect(() => {
-        data.cif = data.hargaPenyerahan + data.freight + data.asuransi + (data.biayaTambahan - data.biayaPengurang);
+        data.cif = data.nilaiBarang + data.freight + data.asuransi + (data.biayaTambahan - data.biayaPengurang);
         setData((value: any) => ({ ...value, cif: data.cif }));
-        data.fob = data.hargaPenyerahan + (data.biayaTambahan - data.biayaPengurang);
+        data.fob = data.nilaiBarang + (data.biayaTambahan - data.biayaPengurang);
         setData((value: any) => ({ ...value, fob: data.fob }));
-
-        data.nilaiBarang = data.ndpbm * data.cif;
-        setData((value: any) => ({ ...value, nilaiBarang: data.nilaiBarang }));
-    },[data.biayaTambahan, data.biayaPengurang, data.fob, data.freight, data.hargaPenyerahan, data.asuransi, data.ndpbm]);
+        setNilaiPabean(data.ndpbm * data.cif);
+    },[data.biayaTambahan, data.biayaPengurang, data.fob, data.freight, data.nilaiBarang, data.asuransi, data.ndpbm]);
     useEffect(() => {
         if (data.kodeAsuransi === "LN") {
             setIsAsuransiValid(false);
@@ -50,30 +50,24 @@ const TransaksiBC23Page = ({ data = [], setData, setIsComplete }: any) => {
         }
     }, [data.kodeAsuransi, data.kodeIncoterm]);
 
-    useEffect(() => {
-        const fetchRate = async () => {
-         if (!data.kodeValuta) {
+    const updateValuta = (val: string) => {
+        if (!data.kodeValuta) {
             setData((prev: any) => ({
                 ...prev,
                 ndpbm: ""
             }));
             return;
         }
-
-        try {
-            const rateValuta = await ceisaService.getRate(data.kodeValuta);
+        ceisaService.getRate(data.kodeValuta).then((rateValuta) => {
             const [{ nilaiKurs = 0 } = {}] = rateValuta?.data ?? [];
             setData((prev: any) => ({
             ...prev,
             ndpbm: nilaiKurs,
             }));
-        } catch (err) {
+        }).catch((err) => {
             console.error("Gagal ambil rate valuta:", err);
-        }
-        };
-
-        fetchRate();
-    }, [data.kodeValuta]);
+        });
+     };
 
     useEffect(() => {
         const isComplete =
@@ -98,9 +92,24 @@ const TransaksiBC23Page = ({ data = [], setData, setIsComplete }: any) => {
             list={ListValuta}
             onChange={(val) => setData((prev: any) => ({ ...prev, kodeValuta: val }))}
             error={!data.kodeValuta ? "Valuta wajib diisi" : ""}
+            readonly={readOnlyView}
         />
         <Card.Input
-            label="NDPBM"
+            label={
+                <>
+                <div style={{ display: "flex", flexDirection: "row", justifyContent: "space-between", alignItems: "center", gap: 6 }}>
+                  Uraian
+                  {readOnlyView ? null : (
+                  <Button size="sm" variant="primary" style={{ display: "flex", alignItems:"center", justifyContent:"center", gap: 4 , borderRadius: 0, fontSize: 12 }} 
+                    onClick={() => {
+                      updateValuta(data.kodeValuta);
+                    }}>
+                    <span style={{paddingTop:1, minWidth:70}}>Sesuai Valuta Terbaru</span>
+                  </Button>
+                    )}
+                  </div>
+                </>
+              }
             name="ndpbm"
             value={data.ndpbm}
             onChange={(val) => setData((prev: any) => ({ ...prev, ndpbm: val }))}
@@ -114,14 +123,15 @@ const TransaksiBC23Page = ({ data = [], setData, setIsComplete }: any) => {
                 list={ListIncoterm}
                 onChange={(val) => setData((prev: any) => ({ ...prev, kodeIncoterm: val }))}
                 error={!data.kodeIncoterm ? "Kode Barang wajib diisi" : ""}
-                readonly={false}
+                readonly={readOnlyView}
             />
             <Card.Numeric
                 label={"\u00A0"}
-                name="hargaPenyerahan"
-                value={data.hargaPenyerahan}
-                onChange={(val) => setData((prev: any) => ({ ...prev, hargaPenyerahan: val }))}
-                readonly={false}
+                name="nilaiBarang"
+                value={data.nilaiBarang}
+                onChange={(val) => setData((prev: any) => ({ ...prev, nilaiBarang: val }))}
+                readonly={readOnlyView}
+                step={0.0001}
             />
         </div>
         <Card.Numeric
@@ -130,13 +140,15 @@ const TransaksiBC23Page = ({ data = [], setData, setIsComplete }: any) => {
                 value={data.cif}
                 onChange={(val) => setData((prev: any) => ({ ...prev, cif: val }))}
                 readonly={true}
+                step={0.01}
             />
             <Card.Numeric
                 label="Nilai Pabean"
                 name="nilaiPabean"
-                value={data.nilaiBarang}
+                value={nilaiPabean}
                 // onChange={(val) => setData((prev: any) => ({ ...prev, nilaiPabean: val }))}
                 readonly={true}
+                step={0.01}
             />
       </Card>
        <Card 
@@ -148,14 +160,14 @@ const TransaksiBC23Page = ({ data = [], setData, setIsComplete }: any) => {
                 name="biayaTambahan"
                 value={data.biayaTambahan}
                 onChange={(val) => setData((prev: any) => ({ ...prev, biayaTambahan: val }))}
-                readonly={false}
+                readonly={readOnlyView}
             />
             <Card.Numeric
                 label="Biaya Pengurang"
                 name="biayaPengurang"
                 value={data.biayaPengurang}
                 onChange={(val) => setData((prev: any) => ({ ...prev, biayaPengurang: val }))}
-                readonly={false}
+                readonly={readOnlyView}
             />
             <Card.Numeric
                 label="FOB"
@@ -163,13 +175,15 @@ const TransaksiBC23Page = ({ data = [], setData, setIsComplete }: any) => {
                 value={data.fob}
                 onChange={(val) => setData((prev: any) => ({ ...prev, fob: val }))}
                 readonly={true}
+                step={0.01}
             />
             <Card.Numeric
                 label="Freight"
                 name="freight"
                 value={data.freight}
                 onChange={(val) => setData((prev: any) => ({ ...prev, freight: val }))}
-                readonly={isFreightValid}
+                readonly={isFreightValid || readOnlyView}
+                step={0.01}
             />
         <div style={{ display: "flex", flexDirection: "row", gap: 8, marginTop: 8, }}>
             <Card.Select
@@ -179,14 +193,15 @@ const TransaksiBC23Page = ({ data = [], setData, setIsComplete }: any) => {
                 list={ListAsuransi}
                 onChange={(val) => setData((prev: any) => ({ ...prev, kodeAsuransi: val }))}
                 error={!data.kodeAsuransi ? "Kode Asuransi wajib diisi" : ""}
-                readonly={false}
+                readonly={readOnlyView}
             />
             <Card.Numeric
                 label={"\u00A0"}
                 name="asuransi"
                 value={data.asuransi}
                 onChange={(val) => setData((prev: any) => ({ ...prev, asuransi: val }))}
-                readonly={isAsuransiValid}
+                readonly={isAsuransiValid || readOnlyView}
+                step={0.01}
             />
         </div>
       </Card>
@@ -204,8 +219,9 @@ const TransaksiBC23Page = ({ data = [], setData, setIsComplete }: any) => {
                     name="bruto"
                     value={data.bruto}
                     onChange={(val) => setData((prev: any) => ({ ...prev, bruto: val }))}
-                    readonly={false}
+                    readonly={readOnlyView}
                     error={data.bruto <= 0 ? "Berat Kotor harus lebih dari 0" : ""}
+                    step={0.0001}
                 />
                 <Card.Numeric
                     label="Berat Bersih (KGM)"
@@ -226,7 +242,7 @@ const TransaksiBC23Page = ({ data = [], setData, setIsComplete }: any) => {
                     list={ListKenaPajak}
                     onChange={(val) => setData((prev: any) => ({ ...prev, kodeKenaPajak: val }))}
                     error={!data.kodeKenaPajak ? "Jasa Kena Pajak wajib diisi" : ""}
-                    readonly={false}
+                    readonly={readOnlyView}
                 />
             </Card>
       </Card>

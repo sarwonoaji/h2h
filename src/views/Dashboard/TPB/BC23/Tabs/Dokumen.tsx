@@ -1,6 +1,6 @@
 import { Button } from "react-bootstrap";
 import Card from "../../../../../components/Card";
-import { FaPlusCircle } from "react-icons/fa";
+import { FaEdit, FaPlusCircle, FaTrash } from "react-icons/fa";
 import CustomTable from "../../../../../components/TableList";
 import { use, useEffect, useState } from "react";
 import { ListDokumen } from "../../../../../services/loader/ListDokumen";
@@ -8,13 +8,14 @@ import moment from "moment";
 import ModalManifest from "../Modals/ModalManifest";
 import { FaCircleExclamation } from "react-icons/fa6";
 import { ceisaService } from "../../../../../services/support/Ceisa/AccessCeisa";
+import LoadingOverlay from "../../../../../components/LoadingOverlay";
 
 
-const DokumenBC23Page = ({ data, setData, headers, setIsComplete }: any) => {
+const DokumenBC23Page = ({ data, setData, headers, setIsComplete, readOnlyView }: any) => {
 
     const initForm = {
         seriDokumen: "",
-        jenisDokumen: "",
+        kodeDokumen: "",
         nomorDokumen: "",
         tanggalDokumen: "",
     };
@@ -30,6 +31,8 @@ const DokumenBC23Page = ({ data, setData, headers, setIsComplete }: any) => {
     const [showModal, setShowModal] = useState(false);
     const [editingIndex, setEditingIndex] = useState<number | null>(null);
     const [form, setForm] = useState({ ...initForm });
+    
+const [isLoading, setIsLoading] = useState(false);
     const generateSeri = () => {
         if (data.length === 0) return "1";
         const maxSeri = Math.max(...data.map((item: any) => parseInt(item.seriDokumen)));
@@ -43,31 +46,32 @@ const DokumenBC23Page = ({ data, setData, headers, setIsComplete }: any) => {
         }));
     };
     const handleSimpan = async () => {
-    if (!form.jenisDokumen || !form.nomorDokumen || !form.tanggalDokumen) {
+    if (!form.kodeDokumen || !form.nomorDokumen || !form.tanggalDokumen) {
         alert("Lengkapi data terlebih dahulu");
         return;
     }
 
-    if (!headers?.kodeKantor) {
+    if (!headers?.kodeKantorBongkar) {
         alert("Kode kantor tidak boleh kosong");
         return;
     }
 
     let res = null;
 
-    if (form.jenisDokumen === "705" || form.jenisDokumen === "740") {
+    if (form.kodeDokumen === "705" || form.kodeDokumen === "740") {
         setShowModal(true);
-
+        
         const head = {
             noHostBl: form.nomorDokumen,
             tglHostBl: form.tanggalDokumen,
-            kodeKantor: headers.kodeKantor,
+            kodeKantor: headers.kodeKantorBongkar,
             namaImportir: headers?.entitas?.find((x: any) => x.kodeEntitas === "3")?.namaEntitas || "",
         };
 
         setHeadState(head);
 
         try {
+            setIsLoading(true);
             res = await ceisaService.getManifes(
                 head.kodeKantor,
                 head.noHostBl,
@@ -78,12 +82,14 @@ const DokumenBC23Page = ({ data, setData, headers, setIsComplete }: any) => {
            if (res.data.respon !== "OK") {
                 console.warn(res.data.respon);
             }
-
+            setIsLoading(false);
             setDataDokumen(res);
 
+        
         } catch (err) {
             console.error(err);
-            return;
+        } finally {
+            setIsLoading(false);
         }
     }
 
@@ -121,7 +127,7 @@ const DokumenBC23Page = ({ data, setData, headers, setIsComplete }: any) => {
     const handleEdit = (row: any, index: number) => {
         setForm({
             seriDokumen: row.seriDokumen,
-            jenisDokumen: row.jenisDokumen,
+            kodeDokumen: row.kodeDokumen,
             nomorDokumen: row.nomorDokumen,
             tanggalDokumen: row.tanggalDokumen,
         });
@@ -150,9 +156,12 @@ useEffect(() => {
     const isComplete = data?.length > 0;
     setIsComplete(isComplete);
 }, [data, setIsComplete]);
-
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 8, justifyContent: "center" }}>
+        <LoadingOverlay
+        show={isLoading}
+        // text="Generating Nomor AJU..."
+      />
         <div style={{ display: "flex", flexDirection: "row", fontWeight: 500, fontSize: 12, padding: 12, backgroundColor: "#fff7db", alignItems: "center", gap: 6, marginBottom: 8 }}>
             <FaCircleExclamation style={{color:"orange"}}/> <span style={{color:"black"}}>Wajib melampirkan dokumen invoice dan dokumen B/L atau AWB</span>
         </div>
@@ -188,10 +197,10 @@ useEffect(() => {
         />
             <Card.Select
             label="Jenis Dokumen"
-            name="jenisDokumen"
-            value={form.jenisDokumen}
-            onChange={(value) => handleInputChange("jenisDokumen", value)}
-            error={!form.jenisDokumen ? "Jenis Dokumen Kosong" : ""}
+            name="kodeDokumen"
+            value={form.kodeDokumen}
+            onChange={(value) => handleInputChange("kodeDokumen", value)}
+            error={!form.kodeDokumen ? "Jenis Dokumen Kosong" : ""}
             list={ListDokumen.map((item) => ({ value: item.key, label: `${item.key} - ${item.value}` }))}
             inputStyle={{ width: "100%" }}
         />
@@ -217,9 +226,11 @@ useEffect(() => {
           title="Dokumen Lampiran"
           headerStyle={{ backgroundColor: "#f5f5f5"}}
           headerCustom={(
+            !readOnlyView && (
             <Button size="sm" variant="primary" style={{ display: "flex", alignItems:"center", justifyContent:"center", gap: 4 , borderRadius: 0, fontSize: 12 }} onClick={() => setShowForm(true)}>
                 <FaPlusCircle/><span style={{paddingTop:1}}>Tambah</span>                
             </Button>
+            )
           )}
         >
         <CustomTable
@@ -230,7 +241,7 @@ useEffect(() => {
             tableStyle={{ fontSize: 12, marginBottom: 0 }}
             columns={[
                 { header: "Seri", accessor: "seriDokumen",thStyle:{ textAlign: "center" }, tdStyle: { minWidth: 50, textAlign: "center" } },
-                { header: "Jenis", accessor: "jenisDokumen", tdStyle: { minWidth: 100}, render: (row) => getNamaDokumen(row.jenisDokumen) },
+                { header: "Jenis", accessor: "kodeDokumen", tdStyle: { minWidth: 100}, render: (row) => getNamaDokumen(row.kodeDokumen) },
                 { header: "Nomor", accessor: "nomorDokumen", tdStyle: { minWidth: 100}, },
                 { header: "Tanggal", accessor: "tanggalDokumen", tdStyle: { minWidth: 100}, render: (row) => row.tanggalDokumen ? moment(row.tanggalDokumen).format("DD MMM YYYY") : "" },
                 { header: "Fasilitas", accessor: "fasilitasDokumen" ,tdStyle: { minWidth: 100} },
@@ -238,27 +249,29 @@ useEffect(() => {
                 { header: "Kantor", accessor: "kantorDokumen", tdStyle: { minWidth: 100} },
                 { header: "File", accessor: "fileDokumen", tdStyle: { minWidth: 100} },
                 {
-                    header: "Action",
+                    header: !readOnlyView ? "Action" : "",
                     accessor: "id",
                     tdStyle: { minWidth: 100 },
                     render: (row, index) => (
+                        !readOnlyView && (
                         <div style={{ display: "flex", gap: 6 }}>
                         <Button
                             size="sm"
-                            variant="outline-warning"
+                            variant="warning"
                             onClick={() => handleEdit(row, index)}
                         >
-                            Edit
+                            <FaEdit />
                         </Button>
 
                         <Button
                             size="sm"
-                            variant="outline-danger"
+                            variant="danger"
                             onClick={() => handleDelete(index)}
                         >
-                            Hapus
+                            <FaTrash />
                         </Button>
                         </div>
+                        )
                     ),
                 },
             ]}

@@ -46,5 +46,12 @@ export const defaultBC23Request: BC23Request = {
   kemasan: [],
   kontainer: [],
   dokumen: [],
-  pengangkut: []
+  pengangkut: [{
+    kodeBendera: null,
+    namaPengangkut: null,
+    nomorPengangkut: null,
+    kodeCaraAngkut: null,
+    seriPengangkut: 1,
+  }],
+  pungutan: [],
 };

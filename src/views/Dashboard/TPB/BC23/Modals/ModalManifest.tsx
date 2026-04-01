@@ -8,6 +8,7 @@ import { ListJenisKontainer } from "../../../../../services/loader/ListJenisKont
 import { ListUkuranKontainer } from "../../../../../services/loader/ListUkuranKontainer";
 import { Button } from "react-bootstrap";
 import { FaCircleExclamation } from "react-icons/fa6";
+import moment from "moment";
 const ModalManifest = ({ header, setHeader, data, setData, setModal, respon }: any) => {
     const isDokumenDitutup = respon?.includes("Dokumen Sudah Ditutup");
     const getNamaTipeKontainer = (kode: string) => {
@@ -26,7 +27,7 @@ const ModalManifest = ({ header, setHeader, data, setData, setModal, respon }: a
         setData((prev: any) => ({
                     ...prev,
                     nomorBc11: header.data.noBc11 ?? prev.nomorBc11,
-                    tanggalBc11: header.data.tglBc11 ?? prev.tanggalBc11,
+                    tanggalBc11: header.data.tglBc11 ? moment(header.data.tglBc11, "DD-MM-YYYY").format("YYYY-MM-DD") : prev.tanggalBc11,
                     posBc11: header.data.noPos?.slice(0, 4) ?? prev.posBc11,
                     subposBc11: header.data.noPos?.length > 4 ? header.data.noPos.slice(4) : prev.subposBc11,
                     tanggalTiba: header.data.tglTiba ?? prev.tanggalTiba,
@@ -113,7 +114,7 @@ const ModalManifest = ({ header, setHeader, data, setData, setModal, respon }: a
                                 <Card.DatePicker
                                     label={"\u00A0"}
                                     name="tanggalBc11"
-                                    value={header.data.tglBc11}
+                                    value={moment(header.data.tglBc11, "DD-MM-YYYY").format("YYYY-MM-DD")|| ""}
                                     // onChange={(val) => { val ?
                                     // setHeader({ ...header.data, tanggalBc11: moment(val).format("YYYY-MM-DD") })
                                     // : setHeader({ ...header.data, tanggalBc11: null });

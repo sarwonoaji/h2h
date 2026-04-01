@@ -1,6 +1,6 @@
 import { Button, Tab, Tabs } from "react-bootstrap";
 import Card from "../../../../../components/Card";
-import { FaPlusCircle } from "react-icons/fa";
+import { FaEdit, FaPlusCircle, FaTrash } from "react-icons/fa";
 import CustomTable from "../../../../../components/TableList";
 import { ModalKemasan } from "../Modals/ModalKemasan";
 import { ModalPetiKemas } from "../Modals/ModalPetiKemas";
@@ -11,7 +11,7 @@ import { useEffect, useState } from "react";
 import { ListJenisKemasan } from "../../../../../services/loader/ListJenisKemasan";
 import { FaCircleExclamation } from "react-icons/fa6";
 
-const KemasanBC23Page = ({ data, setData, setIsComplete}: any) => {
+const KemasanBC23Page = ({ data, setData, setIsComplete, readOnlyView }: any) => {
     const [activeTab, setActiveTab] = useState("kemasan");
     const [activeForm, setActiveForm] = useState<"kemasan" | "petiKemas" | null>(null);
  
@@ -113,6 +113,7 @@ const KemasanBC23Page = ({ data, setData, setIsComplete}: any) => {
                         title="Kemasan"
                         headerStyle={{ backgroundColor: "#f5f5f5"}}
                         headerCustom={(
+                            readOnlyView ? null :
                             <Button size="sm" variant="primary" style={{ display: "flex", alignItems:"center", justifyContent:"center", gap: 4 , borderRadius: 0, fontSize: 12 }}
                             onClick={() => {
                                 setEditingKemasanIndex(null);
@@ -134,29 +135,32 @@ const KemasanBC23Page = ({ data, setData, setIsComplete}: any) => {
                             { header: "Jumlah", accessor: "jumlahKemasan", render: (row) => row.jumlahKemasan },
                             { header: "Jenis", accessor: "kodeJenisKemasan", render: (row) => getJenisKemasan(row.kodeJenisKemasan) },
                             { header: "Merek", accessor: "merkKemasan", render: (row) => row.merkKemasan },
+                            
                             {
-                                header: "Action",
+                                header: !readOnlyView ? "Action" : "",
                                 accessor: "id",
                                 thStyle: { width: 60, textAlign: "center" },
                                 tdStyle: { width: 60, textAlign: "center" },
                                 render: (row, index) => (
+                                    !readOnlyView && (
                                     <div style={{ display: "flex", gap: 6 }}>
                                     <Button
                                         size="sm"
-                                        variant="outline-warning"
+                                        variant="warning"
                                         onClick={() => handleEditKemasan(row, index)}
                                     >
-                                        Edit
+                                        <FaEdit />
                                     </Button>
 
                                     <Button
                                         size="sm"
-                                        variant="outline-danger"
+                                        variant="danger"
                                         onClick={() => handleDeleteKemasan(index)}
                                     >
-                                        Hapus
+                                        <FaTrash />
                                     </Button>
                                     </div>
+                                    )
                                 ),
                             },
                         ]}
@@ -172,6 +176,7 @@ const KemasanBC23Page = ({ data, setData, setIsComplete}: any) => {
                         title="Peti Kemas"
                         headerStyle={{ backgroundColor: "#f5f5f5"}}
                         headerCustom={(
+                            !readOnlyView && (
                             <Button size="sm" variant="primary" style={{ display: "flex", alignItems:"center", justifyContent:"center", gap: 4 , borderRadius: 0, fontSize: 12 }}
                             onClick={() => {
                             setEditingKemasanIndex(null);
@@ -180,6 +185,7 @@ const KemasanBC23Page = ({ data, setData, setIsComplete}: any) => {
                         }}>
                                 <FaPlusCircle/><span style={{paddingTop:1}}>Tambah</span>                
                             </Button>
+                            )
                         )}
                         >
                     <CustomTable
@@ -195,28 +201,30 @@ const KemasanBC23Page = ({ data, setData, setIsComplete}: any) => {
                             { header: "Jenis", accessor: "kodeJenisKontainer", render: (row) => getNamaJenisKontainer(row.kodeJenisKontainer) },
                             { header: "Tipe", accessor: "kodeTipeKontainer", render: (row) => getNamaTipeKontainer(row.kodeTipeKontainer) },
                             {
-                                header: "Action",
+                                header: !readOnlyView ? "Action" : "",
                                 accessor: "id",
                                 thStyle: { width: 60, textAlign: "center" },
                                 tdStyle: { width: 60, textAlign: "center" },
                                 render: (row, index) => (
+                                    !readOnlyView && (
                                     <div style={{ display: "flex", gap: 6 }}>
                                     <Button
                                         size="sm"
-                                        variant="outline-warning"
+                                        variant="warning"
                                         onClick={() => handleEditPetiKemas(row, index)}
                                     >
-                                        Edit
+                                        <FaEdit />
                                     </Button>
 
                                     <Button
                                         size="sm"
-                                        variant="outline-danger"
+                                        variant="danger"
                                         onClick={() => handleDeletePetiKemas(index)}
                                     >
-                                        Hapus
+                                        <FaTrash />
                                     </Button>
                                     </div>
+                                    )
                                 ),
                             },
                         ]}

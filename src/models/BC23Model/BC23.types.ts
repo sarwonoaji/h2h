@@ -30,7 +30,7 @@ export interface BC23Request {
   ndpbm: number; //TAB Transaksi - NDPBM
   netto: number; //TAB Transaksi - Berat Bersih
   nik:string | null; //
-  nilaiBarang: number; //TAB Transaksi - Nilai Pabean Rumus = NDPBM + Total CIF
+  nilaiBarang: number; //TAB Transaksi - Nilai Barang
   nomorAju: string | null; //TAB Header - Nomor Aju
   nomorBc11: string | null; //TAB Pengangkut - BC Nomor
   posBc11: string | null; //TAB Pengangkut - BC Kolom 1
@@ -49,6 +49,7 @@ export interface BC23Request {
   kontainer: Kontainer[];
   dokumen: Dokumen[];
   pengangkut: Pengangkut[];
+  pungutan: Pungutan[];
 }
 
 /* =========================================
@@ -77,7 +78,7 @@ export interface Barang {
   kodeSatuanBarang: string | null; //TAB Barang - Kode Satuan Barang
   merk: string | null; //TAB Barang - Merk
   netto: number; //TAB Barang - Berat Bersih
-  nilaiBarang: number; //TAB Barang - Nilai Pabean Rumus = Transaksi.NDPBM + CIF
+  nilaiBarang: number; //TAB Barang - Nilai Barang
   nilaiTambah: number;
   posTarif: string | null; //TAB Barang - Pos Tarif/HS
   seriBarang: number; //TAB Barang - Seri
@@ -186,6 +187,12 @@ export interface Pengangkut {
   seriPengangkut: number;
 }
 
+export interface Pungutan {
+  idPungutan: string | null;
+  kodeFasilitasTarif: string | null;
+  kodeJenisPungutan: string | null;
+  nilaiPungutan: number | null;
+}
 // {
 //   "apiVersion": "1.0",
 //   "data": {

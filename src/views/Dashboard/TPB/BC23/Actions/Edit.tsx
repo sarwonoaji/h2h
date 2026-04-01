@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import Header from "../Tabs/Header";
 import Entitas from "../Tabs/Entitas";
 import Tabs from 'react-bootstrap/Tabs';
@@ -20,8 +20,11 @@ import Pernyataan from "../Tabs/Pernyataan";
 import Pungutan from "../Tabs/Pungutan";
 import { useNavigate } from "react-router-dom";
 const BASE_ROUTE = "/dashboard/tpb/bc23";
-const BC23CreateView = () => {
+import { useLocation } from "react-router-dom";
+
+const BC23EditView = () => {
   const navigate = useNavigate();
+  const location = useLocation();
   const [isCompleteAll, setIsCompleteAll] = useState(false);
   const [isCompleteHeader, setIsCompleteHeader] = useState(false);
   const [isCompleteEntitas, setIsCompleteEntitas] = useState(false);
@@ -32,33 +35,39 @@ const BC23CreateView = () => {
   const [isCompleteBarang, setIsCompleteBarang] = useState(false);
   const [isCompletePungutan, setIsCompletePungutan] = useState(false);
   const [isCompletePernyataan, setIsCompletePernyataan] = useState(false);
-  const [data, setData] = useState<BC23Request>({
-        ...defaultBC23Request
-    });
-    const [isLoading, setIsLoading] = useState(true);
+  const [data, setData] = useState<BC23Request>(() => {
+    // Cek jika ada data dari navigasi (edit)
+    if (location.state && location.state.data) {
+      const dataEdit = location.state.data;
+      // Pastikan pengangkut selalu array
+      return { ...dataEdit, pengangkut: Array.isArray(dataEdit.pengangkut) ? dataEdit.pengangkut : [dataEdit.pengangkut || {}] };
+    }
+    return { ...defaultBC23Request };
+  });
+  const [isLoading, setIsLoading] = useState(false);
 
-    useEffect(() => {
-    let mounted = true;
-
-    const generate = async () => {
-      setIsLoading(true);
-      const nomorAju = await GenerateAju();
-
-      if (mounted) {
-        setData((prev) => ({ ...prev, nomorAju }));
-        setTimeout(() => setIsLoading(false), 400);
-      }
-    };
-
-    generate();
-
-    return () => {
-      mounted = false;
-    };
-  }, []);
+  // Hanya generate nomor aju jika create baru
+  useEffect(() => {
+    if (!(location.state && location.state.data)) {
+      let mounted = true;
+      const generate = async () => {
+        setIsLoading(true);
+        const nomorAju = await GenerateAju();
+        if (mounted) {
+          setData((prev) => ({ ...prev, nomorAju }));
+          setTimeout(() => setIsLoading(false), 400);
+        }
+      };
+      generate();
+      return () => {
+        mounted = false;
+      };
+    }
+  }, [location.state]);
 
     //set Entitas default from EntitasModels
     useEffect(() => {
+        if (!(location.state && location.state.data)) {
       setData(prev => ({
         ...prev,
         entitas: [
@@ -67,6 +76,7 @@ const BC23CreateView = () => {
           {...entitasPengusaha},
         ]
       }));
+        }
     }, []);
 
     useEffect(() => {
@@ -130,4 +140,4 @@ const BC23CreateView = () => {
   );
 };
 
-export default BC23CreateView;
+export default BC23EditView;

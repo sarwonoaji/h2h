@@ -26,7 +26,7 @@ export const entitasPengusaha: Entitas = {
 export const entitasPemasok: Entitas = {
   alamatEntitas: null,
   kodeEntitas: "5",
-  kodeJenisIdentitas: "2",
+  kodeJenisIdentitas: null,
   kodeJenisApi: null,
   kodeNegara: null,
   kodeStatus: null,
@@ -41,7 +41,7 @@ export const entitasPemasok: Entitas = {
 export const entitasPemilik: Entitas = {
   alamatEntitas: null,
   kodeEntitas: "7",
-  kodeJenisIdentitas: "5",
+  kodeJenisIdentitas: null,
   kodeJenisApi: "2",
   kodeNegara: null,
   kodeStatus: "5",

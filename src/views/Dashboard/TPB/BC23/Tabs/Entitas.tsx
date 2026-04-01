@@ -3,8 +3,9 @@ import Card from "../../../../../components/Card";
 import { ListNegara } from "../../../../../services/loader/ListNegara";
 import moment from "moment";
 import { useEffect } from "react";
+import { ListJenisIdentitas } from "../../../../../services/loader/ListJenisIdentitas";
 
-const EntitasBC23Page = ({ data = [], setData, setIsComplete }: any) => {
+const EntitasBC23Page = ({ data = [], setData, setIsComplete, readOnlyView }: any) => {
   const getEntitas = (seri: string) => {
     return data.find((x: any) => x.kodeEntitas === seri) ?? {
       kodeEntitas: seri,
@@ -50,7 +51,10 @@ const EntitasBC23Page = ({ data = [], setData, setIsComplete }: any) => {
   };
   const pemilik = getEntitas("7");
   const pemasok = getEntitas("5");
+  console.log("Data Entitas Pemasok (Kode 5):", pemasok);
+  
   const pengusaha = getEntitas("3");
+  console.log("Data Entitas Pengusaha (Kode 3):", pengusaha);
 
   useEffect(() => {
     const hasEntitas = !!(
@@ -66,21 +70,31 @@ const EntitasBC23Page = ({ data = [], setData, setIsComplete }: any) => {
           title="Importir/Pengusaha TPB"
           headerStyle={{ backgroundColor: "#f5f5f5", padding: "18px 12px" }}
         >
+          <div style={{ display: "flex", flexDirection: "row", gap: 8, marginBottom: 8, }}>
+          <Card.Select
+            label="Jenis Identitas"
+            name="kodeJenisIdentitas"
+            value={pengusaha.kodeJenisIdentitas || ""}
+            list={ListJenisIdentitas}
+            onChange={(val) => updateEntitas("3", "kodeJenisIdentitas", val)}
+            readonly={readOnlyView}
+          />
           <Card.Input
             label="NPWP"
             name="nomorIdentitas"
             value={pengusaha.nomorIdentitas}
             onChange={(val) => updateEntitas("3", "nomorIdentitas", val)}
             error={!pengusaha.nomorIdentitas ? "Nomor wajib diisi" : ""}
-            readonly={true}
+            readonly={readOnlyView}
           />
+          </div>
           <Card.Input
             label="Nama"
-            name="nama"
+            name="namaEntitas"
             value={pengusaha.namaEntitas}
             onChange={(val) => updateEntitas("3", "namaEntitas", val)}
             error={!pengusaha.namaEntitas ? "Nama wajib diisi" : ""}
-            readonly={true}
+            readonly={readOnlyView}
           />
           <Card.Textarea
             label="Alamat"
@@ -88,7 +102,7 @@ const EntitasBC23Page = ({ data = [], setData, setIsComplete }: any) => {
             value={pengusaha.alamatEntitas}
             onChange={(val) => updateEntitas("3", "alamatEntitas", val.target.value)}
             error={!pengusaha.alamatEntitas ? "Alamat wajib diisi" : ""}
-            readonly={false}
+            readonly={readOnlyView}
           />
         <div style={{ display: "flex", flexDirection: "row", gap: 8, marginTop: 8, }}> 
           <Card.Input
@@ -97,7 +111,7 @@ const EntitasBC23Page = ({ data = [], setData, setIsComplete }: any) => {
             value={pengusaha.nomorIjinEntitas}
             onChange={(val) => updateEntitas("3", "nomorIjinEntitas", val)}
             error={!pengusaha.nomorIjinEntitas ? "Nomor wajib diisi" : ""}
-            readonly={true}
+            readonly={readOnlyView}
           />
           <Card.DatePicker
             label={"\u00A0"}
@@ -111,7 +125,7 @@ const EntitasBC23Page = ({ data = [], setData, setIsComplete }: any) => {
               ): updateEntitas("3", "tanggalIjinEntitas", null);
             }}
             error={!pengusaha?.tanggalIjinEntitas ? "Tanggal Ijin Entitas wajib diisi" : ""}
-            readonly={false}
+            readonly={readOnlyView}
           />
         </div>
           <Card.Numeric
@@ -121,7 +135,7 @@ const EntitasBC23Page = ({ data = [], setData, setIsComplete }: any) => {
             onChange={(val) => updateEntitas("3", "nibEntitas", val)}
             error={!pengusaha.nibEntitas ? "NIB wajib diisi" : ""}
             typeChanges="number"
-            readonly={false}
+            readonly={readOnlyView}
           />
         </Card>
 
@@ -133,7 +147,7 @@ const EntitasBC23Page = ({ data = [], setData, setIsComplete }: any) => {
             value={pemasok.namaEntitas}
             onChange={(val) => updateEntitas("5", "namaEntitas", val)}
             error={!pemasok.namaEntitas ? "Nama wajib diisi" : ""}
-            readonly={false}
+            readonly={readOnlyView}
           />
           <Card.Textarea
             label="Alamat"
@@ -141,43 +155,56 @@ const EntitasBC23Page = ({ data = [], setData, setIsComplete }: any) => {
             value={pemasok.alamatEntitas}
             onChange={(val) => updateEntitas("5", "alamatEntitas", val.target.value)}
             error={!pemasok.alamatEntitas ? "Alamat wajib diisi" : ""}
-            readonly={false}
+            readonly={readOnlyView}
           />
           <Card.Select
             label="Negara"
             name="kodeNegara"
             value={pemasok.kodeNegara || ""}
-            list={ListNegara.map(item => ({ label: item.label, value: item.value }))}
+            list={ListNegara.map(item => ({ label: `${item.value} - ${item.label}`, value: item.value }))}
             onChange={(val) => updateEntitas("5", "kodeNegara", val)}
             error={!pemasok.kodeNegara ? "Negara wajib diisi" : ""}
+            readonly={readOnlyView}
           />
         </Card>
         <Card
           title="Pemilik Barang"
-          headerStyle={{ backgroundColor: "#f5f5f5"}}
+          headerStyle={{ backgroundColor: "#f5f5f5",  padding: readOnlyView ? "18px 12px" : "12px" }}
           headerCustom={(
+            !readOnlyView && (
               <div style={{ display: "flex", flexDirection: "row", gap: 8, }}>
                   <Button size="sm" variant="primary" style={{ display: "flex", alignItems:"center", justifyContent:"center", gap: 4 , borderRadius: 0, fontSize: 12 }} onClick={pushPengusaha}>
                       <span style={{paddingTop:1}}>Salin Pengusaha</span>                
                   </Button>
               </div>
+            )
           )}
         >
+          <div style={{ display: "flex", flexDirection: "row", gap: 8, marginBottom: 8, }}>
+            <Card.Select
+            label="Jenis Identitas"
+            name="kodeJenisIdentitas"
+            value={pemilik.kodeJenisIdentitas || ""}
+            list={ListJenisIdentitas}
+            onChange={(val) => updateEntitas("7", "kodeJenisIdentitas", val)}
+            readonly={readOnlyView}
+          />
           <Card.Input
             label="NPWP"
             name="nomorIdentitas"
             value={pemilik.nomorIdentitas}
             onChange={(val) => updateEntitas("7", "nomorIdentitas", val)}
             error={!pemilik.nomorIdentitas ? "Nomor wajib diisi" : ""}
-            readonly={false}
+            readonly={readOnlyView}
           />
+          </div>
           <Card.Input
             label="Nama"
             name="nama"
             value={pemilik.namaEntitas}
             onChange={(val) => updateEntitas("7", "namaEntitas", val)}
             error={!pemilik.namaEntitas ? "Nama wajib diisi" : ""}
-            readonly={false}
+            readonly={readOnlyView}
           />
           <Card.Textarea
             label="Alamat"
@@ -185,7 +212,7 @@ const EntitasBC23Page = ({ data = [], setData, setIsComplete }: any) => {
             value={pemilik.alamatEntitas}
             onChange={(e) => updateEntitas("7", "alamatEntitas", e.target.value)}
             error={!pemilik.alamatEntitas ? "Alamat wajib diisi" : ""}
-            readonly={false}
+            readonly={readOnlyView}
           />
         </Card>
     </div>
